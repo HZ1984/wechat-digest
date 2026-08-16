@@ -3,7 +3,12 @@ name: Daily Digest
 on:
   schedule:
     - cron: '0 0 * * *'   # UTC 00:00 = 北京时间 08:00 (GitHub 定时可能有几分钟延迟)
-  workflow_dispatch: {}    # 支持手动触发测试
+  workflow_dispatch:       # 支持手动触发测试
+    inputs:
+      dry_run:
+        description: '试跑模式(不发送邮件)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write          # 允许提交 sent_history 回仓库
@@ -27,7 +32,7 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           TO_EMAIL: ${{ secrets.TO_EMAIL }}
-        run: python digest_cloud.py
+        run: python digest_cloud.py ${{ (inputs.dry_run == true) && '--dry-run' || '' }}
 
       - name: Commit sent history & archive
         run: |
