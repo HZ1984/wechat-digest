@@ -264,7 +264,9 @@ def main():
             continue
         if pub.date() < lookback.date():
             continue
-        if a["link"] in sent:
+        # 兼容三种历史键: 完整链接 / id:slug / title:标题 (与本地 digest.py 互通)
+        slug = a["link"].split("/s/")[-1].split("?")[0].split("#")[0]
+        if a["link"] in sent or ("id:" + slug) in sent or ("title:" + a["title"].strip()) in sent:
             continue
         candidates.append(a)
     print(f"[+] 回溯 {cfg.get('lookback_days', 3)} 天且未推送过: {len(candidates)} 篇")
@@ -353,7 +355,10 @@ def main():
         print("[dry-run] 跳过 sent_history 更新")
         return
     for a in selected:
+        slug = a["link"].split("/s/")[-1].split("?")[0].split("#")[0]
         sent[a["link"]] = run_date
+        sent["id:" + slug] = run_date
+        sent["title:" + a["title"].strip()] = run_date
     cutoff = (now - timedelta(days=45)).strftime("%Y-%m-%d")
     sent = {k: v for k, v in sent.items() if v >= cutoff}
     hist_path.write_text(json.dumps(sent, ensure_ascii=False, indent=1), encoding="utf-8")
