@@ -27,7 +27,6 @@ from pathlib import Path
 
 CST = timezone(timedelta(hours=8))
 BASE_DIR = Path(__file__).resolve().parent
-RSS_CONTENT_NS = {"content": "http://purl.org/rss/1.0-modules/content/"}
 
 DEFAULT_CONFIG = {
     "repo_url": "",            # 如 https://github.com/<user>/<repo>.git (推送时自动嵌入令牌)
@@ -40,6 +39,15 @@ DEFAULT_CONFIG = {
     "health_url": "http://localhost:4000/",
     "days_to_export": 5,
 }
+
+
+def strip_noise(content_html: str) -> str:
+    """剥离 script/style/svg/link/meta 等与评分无关的噪声(微信文章内嵌互动图表 JS 单块可达数百 KB)"""
+    text = re.sub(r"<script[\s\S]*?</script>", "", content_html, flags=re.I)
+    text = re.sub(r"<style[\s\S]*?</style>", "", text, flags=re.I)
+    text = re.sub(r"<svg[\s\S]*?</svg>", "", text, flags=re.I)
+    text = re.sub(r"<link[^>]*>|<meta[^>]*>", "", text, flags=re.I)
+    return text.strip()
 
 
 def clean_text(content_html: str) -> str:
@@ -142,10 +150,11 @@ def export_articles(cfg: dict) -> bool:
         if dt < lookback:
             continue
 
-        ce = item.find("content:encoded", RSS_CONTENT_NS)
+        ce = next((el for el in item if el.tag.endswith("}encoded")), None)
         content_html = (ce.text or "") if ce is not None else ""
         if not content_html:
             content_html = _txt("description")
+        content_html = strip_noise(content_html)
 
         source = ""
         if "/s/" in link:

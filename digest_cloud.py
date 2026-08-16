@@ -203,6 +203,9 @@ def gen_email_html(selected: list, run_date: str, cfg: dict, stale_note: str = "
 
 # ---------------------------------------------------------------- 邮件发送
 def send_mail(subject: str, html_body: str, cfg: dict):
+    if "--dry-run" in sys.argv:
+        print(f"[dry-run] 跳过发信: {subject} ({len(html_body)} 字符)")
+        return
     smtp_user = os.environ.get("SMTP_USER", "")
     smtp_pass = os.environ.get("SMTP_PASS", "")
     to_email = os.environ.get("TO_EMAIL", "") or cfg.get("to_email", "")
@@ -228,6 +231,7 @@ def send_mail(subject: str, html_body: str, cfg: dict):
 
 # ---------------------------------------------------------------- 主流程
 def main():
+    dry_run = "--dry-run" in sys.argv
     cfg = json.loads((BASE_DIR / "config.json").read_text(encoding="utf-8"))
     now = datetime.now(CST)
     run_date = now.strftime("%Y-%m-%d")
@@ -258,7 +262,7 @@ def main():
             pub = datetime.strptime(a["pub_date"][:10], "%Y-%m-%d")
         except Exception:
             continue
-        if pub < lookback.date():
+        if pub.date() < lookback.date():
             continue
         if a["link"] in sent:
             continue
@@ -345,6 +349,9 @@ def main():
     send_mail(f"公众号精选日报 · {run_date}", email_html, cfg)
 
     # 更新发送历史(保留 45 天)
+    if dry_run:
+        print("[dry-run] 跳过 sent_history 更新")
+        return
     for a in selected:
         sent[a["link"]] = run_date
     cutoff = (now - timedelta(days=45)).strftime("%Y-%m-%d")
