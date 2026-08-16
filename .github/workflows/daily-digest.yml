@@ -1,0 +1,39 @@
+name: Daily Digest
+
+on:
+  schedule:
+    - cron: '0 0 * * *'   # UTC 00:00 = 北京时间 08:00 (GitHub 定时可能有几分钟延迟)
+  workflow_dispatch: {}    # 支持手动触发测试
+
+permissions:
+  contents: write          # 允许提交 sent_history 回仓库
+
+concurrency:
+  group: daily-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run digest & send email
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          TO_EMAIL: ${{ secrets.TO_EMAIL }}
+        run: python digest_cloud.py
+
+      - name: Commit sent history & archive
+        run: |
+          git config user.name "digest-bot"
+          git config user.email "actions@github.com"
+          git add data/sent_history.json output/ || true
+          git diff --cached --quiet && echo "nothing to commit" && exit 0
+          git commit -m "digest: $(TZ=Asia/Shanghai date +%F) run"
+          git push
