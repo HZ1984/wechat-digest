@@ -33,17 +33,75 @@ CST = timezone(timedelta(hours=8))  # 东八区
 BASE_DIR = Path(__file__).resolve().parent
 
 # ---------------------------------------------------------------- 评分规则(与本地 digest.py 保持一致)
-MARKETING_WORDS = [
+# 营销词分级: 强营销词(标题命中=一票否决, 正文命中只轻扣分) / 弱营销词(标题命中扣分, 正文不扣)
+# 背景: 旧版用单一词表且"标题或正文命中即排除", 导致"广告/清仓/下单"等正常用词误杀大量好文章
+STRONG_MARKETING = [
     "免费领取", "限时", "秒杀", "抢购", "抽奖", "转发到朋友圈", "点击下方链接",
-    "扫码领取", "促销", "优惠券", "折扣", "买一送一", "双11", "618", "清仓",
-    "最后一天", "速抢", "拼团", "砍价", "邀请好友", "红包", "补贴", "福利社",
-    "广告", "推广", "软文", "合作推广", "商务合作", "点击购买", "下单",
+    "扫码领取", "促销", "优惠券", "买一送一", "双11", "618", "清仓",
+    "最后一天", "速抢", "拼团", "砍价", "邀请好友", "红包", "福利社",
+    "点击购买", "下单", "立即购买", "免费领取", "领券",
 ]
+WEAK_MARKETING = ["广告", "推广", "软文", "合作推广", "商务合作", "补贴", "折扣", "赞助"]
+
+# 低信息密度内容: 标题命中即一票否决(公告/日历/预警/期刊推荐等短讯栏目)
+LOW_VALUE_KEYWORDS = [
+    "迎日历", "日历", "答记者问", "公告", "声明", "预警", "快讯", "简报",
+    "直播预告", "开奖", "中奖", "招聘", "征稿", "报名", "重磅推荐", "期刊推荐",
+    "直播开讲", "有奖", "征订",
+]
+
 CLICKBAIT_WORDS = [
     "震惊", "重磅", "万万没想到", "不看后悔", "内部消息", "独家揭秘", "惊天",
     "吓尿", "哭晕", "沸腾了", "炸锅", "疯了", "不可思议", "罕见", "刚刚",
     "突发", "紧急", "马上删", "快看", "出大事", "彻底", "绝了", "必看",
 ]
+
+AD_ZONE_RE = re.compile(r"广告|商务合作|软文")
+AD_CTA_RE = re.compile(r"点击|购买|下单|扫码|咨询|添加微信|优惠|电话")
+
+
+def is_ad_zone(text: str) -> bool:
+    """检测正文前 1500 字内是否夹带硬广(营销词与引导词相距 100 字内)"""
+    head = text[:1500]
+    for m in AD_ZONE_RE.finditer(head):
+        if AD_CTA_RE.search(head[max(0, m.start() - 100):m.start() + 80]):
+            return True
+    return False
+
+
+def is_low_value(article: dict) -> bool:
+    """标题或正文开头命中低信息密度关键词(公告/日历/预警等)"""
+    title = article.get("title", "")
+    head = article.get("text", "")[:300]
+    return any(k in title or k in head for k in LOW_VALUE_KEYWORDS)
+
+
+def interest_hit(kw: str, text_lower: str):
+    """兴趣匹配: 纯英文/数字关键词要求词边界, 避免 'ai' 误匹配 'said' 等"""
+    if re.fullmatch(r"[a-z0-9]+", kw.lower()):
+        return re.search(r"(?<![a-z0-9])" + re.escape(kw.lower()) + r"(?![a-z0-9])", text_lower)
+    return kw.lower() in text_lower
+
+
+def marketing_penalty(title: str, text: str) -> tuple:
+    """返回 (score_delta, is_marketing, reason)。仅标题强营销词/硬广区=排除, 正文弱词不误杀"""
+    head = text[:1500]
+    strong_title = [w for w in STRONG_MARKETING if w in title]
+    strong_head = [w for w in STRONG_MARKETING if w in head]
+    weak_title = [w for w in WEAK_MARKETING if w in title]
+
+    if strong_title or len(weak_title) >= 2:
+        words = (strong_title or weak_title)[:2]
+        return -30, True, f"标题含营销词({', '.join(words)})"
+    if weak_title:
+        return -8, False, f"标题提及弱营销词({weak_title[0]})"
+    delta, reasons = 0, []
+    if strong_head:
+        delta -= min(len(strong_head) * 4, 12)
+        reasons.append(f"正文提及营销词({', '.join(strong_head[:2])})")
+    if is_ad_zone(text):
+        return delta - 30, True, "正文夹带硬广区域"
+    return delta, False, "; ".join(reasons)
 
 SKIP_KEYWORDS = ["在小说阅读器", "去阅读", "沉浸阅读", "Original",
                  "The following article is From", "微信扫一扫关注该公众号",
@@ -80,15 +138,15 @@ def heuristic_score(article: dict, cfg: dict) -> dict:
     interests = [kw.lower() for kw in cfg.get("interests", []) if kw]
     if interests:
         text_lower = (title + " " + text[:3000]).lower()
-        hits = [kw for kw in interests if kw in text_lower]
+        hits = [kw for kw in interests if interest_hit(kw, text_lower)]
         if hits:
             score += min(len(hits) * 4, 12)
             reasons.append(f"命中兴趣: {'、'.join(hits[:3])}")
 
-    marketing_hits = [w for w in MARKETING_WORDS if w in title or w in text[:1500]]
-    if marketing_hits:
-        score -= min(len(marketing_hits) * 8, 30)
-        reasons.append(f"疑似营销({', '.join(marketing_hits[:2])})")
+    m_delta, m_flag, m_reason = marketing_penalty(title, text)
+    score += m_delta
+    if m_reason:
+        reasons.append(m_reason)
 
     clickbait_hits = [w for w in CLICKBAIT_WORDS if w in title]
     if clickbait_hits:
@@ -101,7 +159,7 @@ def heuristic_score(article: dict, cfg: dict) -> dict:
         reasons.append(f"来源「{account}」加权")
 
     return {"score": round(max(0, min(score, 100)), 1), "reasons": reasons,
-            "flags": {"marketing": bool(marketing_hits), "clickbait": bool(clickbait_hits)}}
+            "flags": {"marketing": m_flag, "clickbait": bool(clickbait_hits)}}
 
 
 def explore_score(article: dict, cfg: dict, rng) -> dict:
@@ -110,7 +168,7 @@ def explore_score(article: dict, cfg: dict, rng) -> dict:
     score, reasons = 40.0, []
 
     chars = len(text)
-    min_explore = cfg.get("explore_min_chars", 1000)
+    min_explore = cfg.get("explore_min_chars", 1200)
     if chars >= 8000:
         score += 20
     elif chars >= 4000:
@@ -128,13 +186,14 @@ def explore_score(article: dict, cfg: dict, rng) -> dict:
     interests = [kw.lower() for kw in cfg.get("interests", []) if kw]
     if interests:
         text_lower = (title + " " + text[:2000]).lower()
-        hits = [kw for kw in interests if kw in text_lower]
+        hits = [kw for kw in interests if interest_hit(kw, text_lower)]
         if hits:
             score -= min(len(hits) * 5, 20)
 
-    marketing_hits = [w for w in MARKETING_WORDS if w in title or w in text[:1500]]
-    if marketing_hits:
-        score -= min(len(marketing_hits) * 8, 30)
+    m_delta, m_flag, m_reason = marketing_penalty(title, text)
+    score += m_delta
+    if m_reason:
+        reasons.append(m_reason)
     clickbait_hits = [w for w in CLICKBAIT_WORDS if w in title]
     if clickbait_hits:
         score -= min(len(clickbait_hits) * 6, 18)
@@ -143,7 +202,7 @@ def explore_score(article: dict, cfg: dict, rng) -> dict:
     if not reasons:
         reasons.append("自由探索 · 跳出既定兴趣圈")
     return {"score": round(max(0, min(score, 100)), 1), "reasons": reasons,
-            "flags": {"marketing": bool(marketing_hits), "clickbait": bool(clickbait_hits)}}
+            "flags": {"marketing": m_flag, "clickbait": bool(clickbait_hits)}}
 
 
 # ---------------------------------------------------------------- 邮件 HTML(内联样式, 兼容各邮件客户端)
@@ -261,7 +320,7 @@ def main():
 
     lookback = now - timedelta(days=cfg.get("lookback_days", 3) - 1)
     lookback = lookback.replace(hour=0, minute=0, second=0, microsecond=0)
-    candidates, stale_note = [], ""
+    candidates, stale_note, skipped_low = [], [], 0
     for a in all_articles:
         try:
             pub = datetime.strptime(a["pub_date"][:10], "%Y-%m-%d")
@@ -273,8 +332,12 @@ def main():
         slug = a["link"].split("/s/")[-1].split("?")[0].split("#")[0]
         if a["link"] in sent or ("id:" + slug) in sent or ("title:" + a["title"].strip()) in sent:
             continue
+        if is_low_value(a):   # 低信息密度内容(公告/日历/预警/期刊推荐等)直接剔除
+            skipped_low += 1
+            continue
         candidates.append(a)
-    print(f"[+] 回溯 {cfg.get('lookback_days', 3)} 天且未推送过: {len(candidates)} 篇")
+    print(f"[+] 回溯 {cfg.get('lookback_days', 3)} 天且未推送过: {len(candidates)} 篇"
+          f" (另有 {skipped_low} 篇低信息密度内容已剔除)")
 
     # 无新文章: 发提示邮件(不中断, 保持系统可感知)
     if not candidates:
@@ -295,9 +358,16 @@ def main():
     rng = random.Random(run_date)
 
     ranked = sorted(candidates, key=lambda a: a["eval"]["score"], reverse=True)
-    main_selected = [a for a in ranked if not a["eval"]["flags"].get("marketing")][:main_count]
-    if len(main_selected) < main_count:
-        main_selected = ranked[:main_count]
+    # 主线: 非营销 + 字数达标(宁缺毋滥, 不补位短篇)
+    min_chars = cfg.get("min_chars", 1500)
+    main_pool = [a for a in ranked
+                 if not a["eval"]["flags"].get("marketing")
+                 and len(a["text"]) >= min_chars]
+    main_selected = main_pool[:main_count]
+    if len(main_pool) > main_count:
+        print(f"[+] 主线候选 {len(main_pool)} 篇, 取前 {main_count}")
+    elif len(main_pool) < main_count:
+        print(f"[+] 主线达标仅 {len(main_pool)} 篇(<{main_count}), 宁缺毋滥不再补位短篇")
     for a in main_selected:
         a["type"] = "main"
 
@@ -305,7 +375,7 @@ def main():
     if explore_count > 0:
         chosen_links = {a["link"] for a in selected}
         picked_sources = {a["source"] for a in selected if a["source"]}
-        min_explore = cfg.get("explore_min_chars", 1000)
+        min_explore = cfg.get("explore_min_chars", 1200)
         pool = [a for a in candidates
                 if a["link"] not in chosen_links
                 and not a["eval"]["flags"].get("marketing")
@@ -334,6 +404,14 @@ def main():
             selected.append(a)
 
     n_explore = sum(1 for a in selected if a.get("type") == "explore")
+    if not selected:
+        body = (f"<p>今天候选 {len(candidates)} 篇, 但通过质量门槛(正文≥{cfg.get('min_chars', 1500)}字、"
+                f"非营销、非公告/日历/预警等低质内容)的为 0 篇, 因此不推送低质日报。</p>"
+                f"<p>本地数据最后更新时间: {exported_at}(北京时间)。</p>"
+                f"<p>通常第二天新文章增多后会自动恢复。</p>")
+        send_mail(f"公众号日报 · {run_date} · 今日暂无高质量文章", body, cfg)
+        print("[+] 已发送'暂无高质量文章'通知(宁缺毋滥)")
+        return
     print(f"== 精选 Top {len(selected)} (主线 {len(selected) - n_explore} + 探索 {n_explore}) ==")
     for i, a in enumerate(selected, 1):
         tag = "[探索]" if a.get("type") == "explore" else ""
