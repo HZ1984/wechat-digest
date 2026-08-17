@@ -9,5 +9,5 @@
   "account_weights": {},
   "smtp_host": "smtp.qq.com",
   "smtp_port": 465,
-  "to_email": "zhanghongquan@outlook.com"
+  "to_email": ""
 }

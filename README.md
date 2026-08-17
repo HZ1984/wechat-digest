@@ -24,7 +24,7 @@
 |------|------|
 | SMTP_USER | 发件 QQ 邮箱, 如 123456@qq.com |
 | SMTP_PASS | QQ 邮箱 SMTP 授权码(设置 → 账户 → POP3/SMTP 服务) |
-| TO_EMAIL | 收件邮箱 zhanghongquan@outlook.com |
+| TO_EMAIL | 收件邮箱(在 Secrets 中配置) |
 
 ## 本地同步
 
