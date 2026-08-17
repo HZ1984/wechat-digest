@@ -108,6 +108,24 @@ SKIP_KEYWORDS = ["在小说阅读器", "去阅读", "沉浸阅读", "Original",
                  "预览时标签不可点", "收录于合集", "个相关内容"]
 
 
+def topic_hits(article: dict, cfg: dict) -> dict:
+    """识别文章命中的高权重主题(如人工智能/新能源汽车)。
+    命中门槛: 标题命中 1 个关键词, 或正文前 3000 字命中 ≥2 个不同关键词
+    (避免正文偶提一次的 'AI'/'蔚来' 等造成误标)。
+    返回 {主题名: {hits:[命中的关键词], bonus, quota, min_chars}}"""
+    title_lower = article.get("title", "").lower()
+    text_lower = article.get("text", "")[:3000].lower()
+    result = {}
+    for topic, spec in cfg.get("topic_weights", {}).items():
+        kws = spec.get("keywords", [])
+        title_hits = [kw for kw in kws if interest_hit(kw, title_lower)]
+        text_hits = [kw for kw in kws
+                     if kw not in title_hits and interest_hit(kw, text_lower)]
+        if title_hits or len(text_hits) >= 2:
+            result[topic] = {"hits": (title_hits + text_hits)[:3], **spec}
+    return result
+
+
 def count_tags(content_html: str, tag: str) -> int:
     return len(re.findall(rf"<{tag}[\s>]", content_html, flags=re.I))
 
@@ -142,6 +160,14 @@ def heuristic_score(article: dict, cfg: dict) -> dict:
         if hits:
             score += min(len(hits) * 4, 12)
             reasons.append(f"命中兴趣: {'、'.join(hits[:3])}")
+
+    # 高权重主题加分(topic_weights: 人工智能/新能源汽车为最高权重)
+    topics = topic_hits(article, cfg)
+    if topics:
+        for tname, tspec in topics.items():
+            score += tspec.get("bonus", 0)
+            reasons.append(f"高权重主题「{tname}」+{tspec.get('bonus', 0)}"
+                           f"(命中: {'、'.join(tspec['hits'])})")
 
     m_delta, m_flag, m_reason = marketing_penalty(title, text)
     score += m_delta
@@ -189,6 +215,12 @@ def explore_score(article: dict, cfg: dict, rng) -> dict:
         hits = [kw for kw in interests if interest_hit(kw, text_lower)]
         if hits:
             score -= min(len(hits) * 5, 20)
+
+    # 探索区反向规避高权重主题(主线已保证 AI/新能源每日更新, 探索区倾向其他方向)
+    topics = topic_hits(article, cfg)
+    if topics:
+        score -= sum(t.get("bonus", 0) for t in topics.values())
+        reasons.append(f"探索区避开高权重主题({'、'.join(topics)})")
 
     m_delta, m_flag, m_reason = marketing_penalty(title, text)
     score += m_delta
@@ -348,9 +380,10 @@ def main():
         print("[+] 已发送'暂无新文章'通知")
         return
 
-    # 评分 + 精选(主线 + 自由探索, 与本地版同一套逻辑)
+    # 评分 + 主题识别 + 精选(主线 + 自由探索, 与本地版同一套逻辑)
     for a in candidates:
         a["eval"] = heuristic_score(a, cfg)
+        a["topics"] = topic_hits(a, cfg)
 
     limit = cfg.get("max_results", 8)
     explore_count = min(cfg.get("explore_count", 2), limit // 2)
@@ -358,18 +391,43 @@ def main():
     rng = random.Random(run_date)
 
     ranked = sorted(candidates, key=lambda a: a["eval"]["score"], reverse=True)
-    # 主线: 非营销 + 字数达标(宁缺毋滥, 不补位短篇)
-    min_chars = cfg.get("min_chars", 1500)
-    main_pool = [a for a in ranked
-                 if not a["eval"]["flags"].get("marketing")
-                 and len(a["text"]) >= min_chars]
-    main_selected = main_pool[:main_count]
-    if len(main_pool) > main_count:
-        print(f"[+] 主线候选 {len(main_pool)} 篇, 取前 {main_count}")
-    elif len(main_pool) < main_count:
-        print(f"[+] 主线达标仅 {len(main_pool)} 篇(<{main_count}), 宁缺毋滥不再补位短篇")
-    for a in main_selected:
-        a["type"] = "main"
+    default_min = cfg.get("min_chars", 1500)
+
+    def qualified(a, min_chars):
+        return not a["eval"]["flags"].get("marketing") and len(a["text"]) >= min_chars
+
+    # 主线: 先按高权重主题配额直选(AI/新能源有货必保, 宁缺毋滥不强凑), 剩余名额按分数竞争
+    main_selected, selected_links = [], set()
+    for topic, spec in cfg.get("topic_weights", {}).items():
+        qmin = spec.get("min_chars") or default_min
+        n_topic = len([a for a in candidates if topic in a.get("topics", {})])
+        pool = [a for a in candidates
+                if topic in a.get("topics", {})
+                and a["link"] not in selected_links      # 跨主题去重(已入选不再参与)
+                and qualified(a, qmin)]
+        pool.sort(key=lambda a: a["eval"]["score"], reverse=True)
+        take = min(spec.get("quota", 2), len(pool))
+        if take == 0:
+            print(f"[+] {topic}: 候选 {n_topic} 篇, 达标 0 篇, 名额让给其他方向(宁缺毋滥)")
+            continue
+        print(f"[+] {topic}: 候选 {n_topic} 篇, 达标 {len(pool)} 篇, 配额直选 {take} 篇")
+        for a in pool[:take]:
+            a["type"] = "main"
+            main_selected.append(a)
+            selected_links.add(a["link"])
+
+    remaining = main_count - len(main_selected)
+    if remaining > 0:
+        rest_pool = [a for a in ranked
+                     if a["link"] not in selected_links and qualified(a, default_min)]
+        print(f"[+] 其余方向按分数竞争剩余 {remaining} 个名额(候选 {len(rest_pool)} 篇)")
+        for a in rest_pool[:remaining]:
+            a["type"] = "main"
+            main_selected.append(a)
+            selected_links.add(a["link"])
+    if len(main_selected) < main_count:
+        print(f"[+] 主线达标共 {len(main_selected)} 篇(<{main_count}), 宁缺毋滥不再补位短篇")
+    main_selected = main_selected[:main_count]
 
     selected = list(main_selected)
     if explore_count > 0:
@@ -415,7 +473,8 @@ def main():
     print(f"== 精选 Top {len(selected)} (主线 {len(selected) - n_explore} + 探索 {n_explore}) ==")
     for i, a in enumerate(selected, 1):
         tag = "[探索]" if a.get("type") == "explore" else ""
-        print(f"  {i}. {tag}[{a['eval']['score']:.0f}分] {a['title']} ({a['source']})")
+        ttags = "".join(f"[{t}]" for t in a.get("topics", {}))
+        print(f"  {i}. {tag}{ttags}[{a['eval']['score']:.0f}分] {a['title']} ({a['source']})")
 
     # 数据新鲜度提示(本地超过 26 小时未同步时)
     try:
