@@ -4,3 +4,5 @@ __pycache__/
 _login_result.json
 _login_uuid.txt
 _wewe_login_qr.png
+_poll_login.py
+_watch_refresh.py
