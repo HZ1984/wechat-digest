@@ -185,6 +185,69 @@ def export_articles(cfg: dict) -> bool:
     return True
 
 
+def api_push(cfg: dict) -> bool:
+    """用 GitHub Contents API 更新 data/articles_recent.json(替代 git 推送)。
+    原因: 本机 git 协议访问 github.com:443 不稳定(时通时断), 而 api.github.com 稳定。
+    Contents API 单文件 PUT 上限 100MB, articles_recent.json(约 2.3MB) 完全没问题。
+    """
+    import base64
+
+    token = cfg["token"]
+    repo_url = cfg.get("repo_url", "")
+    if not token or not repo_url:
+        print("[error] sync_config.json 缺少 repo_url / token, 无法推送")
+        return False
+    parts = repo_url.rstrip("/").replace(".git", "").split("/")
+    owner, repo = parts[-2], parts[-1]
+    path = "data/articles_recent.json"
+    local_file = BASE_DIR / "data" / "articles_recent.json"
+    if not local_file.exists():
+        print(f"[error] {local_file} 不存在")
+        return False
+
+    content_b64 = base64.b64encode(local_file.read_bytes()).decode()
+    api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
+    headers = {"Authorization": f"token {token}", "User-Agent": "Mozilla/5.0"}
+
+    # 1) 获取当前文件 sha(文件不存在则为 None -> 创建)
+    sha = None
+    try:
+        req = urllib.request.Request(api_url, headers=headers)
+        with urllib.request.urlopen(req, timeout=30) as r:
+            meta = json.loads(r.read().decode())
+        sha = meta.get("sha")
+    except urllib.error.HTTPError as e:
+        if e.code != 404:
+            print(f"[error] 获取文件 sha 失败 HTTP {e.code}: {e.read().decode('utf-8', errors='replace')[:200]}")
+            return False
+
+    # 2) PUT 更新
+    body = {
+        "message": f"data: sync {datetime.now(CST).strftime('%Y-%m-%d %H:%M')}",
+        "content": content_b64,
+    }
+    if sha:
+        body["sha"] = sha
+    try:
+        req = urllib.request.Request(
+            api_url,
+            data=json.dumps(body).encode("utf-8"),
+            headers={**headers, "Accept": "application/vnd.github+json",
+                     "Content-Type": "application/json"},
+            method="PUT",
+        )
+        with urllib.request.urlopen(req, timeout=120) as r:
+            resp = json.loads(r.read().decode())
+        print(f"[+] 已通过 GitHub API 更新 {path} -> commit {resp['commit']['sha'][:8]}")
+        return True
+    except urllib.error.HTTPError as e:
+        print(f"[error] API 推送失败 HTTP {e.code}: {e.read().decode('utf-8', errors='replace')[:300]}")
+        return False
+    except Exception as e:
+        print(f"[error] API 推送异常: {e}")
+        return False
+
+
 def git_push(cfg: dict) -> bool:
     if not cfg["repo_url"] or not cfg["token"]:
         print("[error] sync_config.json 缺少 repo_url / token, 无法推送")
@@ -227,7 +290,8 @@ def main():
 
     if not export_articles(cfg):
         sys.exit(1)
-    git_push(cfg)
+    # git 协议到 github.com:443 在本机不稳定, 已改用 GitHub Contents API
+    api_push(cfg)
     print("SYNC_DONE")
 
 
