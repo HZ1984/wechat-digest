@@ -1,3 +1,6 @@
 sync_config.json
 __pycache__/
 *.pyc
+_login_result.json
+_login_uuid.txt
+_wewe_login_qr.png
