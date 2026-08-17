@@ -254,6 +254,11 @@ def main():
     hist_path = BASE_DIR / "data" / "sent_history.json"
     sent = json.loads(hist_path.read_text(encoding="utf-8")) if hist_path.exists() else {}
 
+    # 当天只发一封(防 GitHub schedule 多时间点重复触发, 也防手动+定时叠加)
+    if not dry_run and run_date in sent.values():
+        print(f"[skip] {run_date} 今天已发送过日报, 跳过本次(防止重复推送)")
+        return
+
     lookback = now - timedelta(days=cfg.get("lookback_days", 3) - 1)
     lookback = lookback.replace(hour=0, minute=0, second=0, microsecond=0)
     candidates, stale_note = [], ""

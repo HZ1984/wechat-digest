@@ -1,8 +1,12 @@
 name: Daily Digest
 
 on:
+  # GitHub Actions schedule 使用 UTC 时间; 多个时间点提高触发成功率,
+  # digest_cloud.py 内置"当天只发一封"防重复
   schedule:
-    - cron: '0 0 * * *'   # UTC 00:00 = 北京时间 08:00 (GitHub 定时可能有几分钟延迟)
+    - cron: '0 0 * * *'
+    - cron: '15 0 * * *'
+    - cron: '30 0 * * *'
   workflow_dispatch:       # 支持手动触发测试
     inputs:
       dry_run:
