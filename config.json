@@ -2,7 +2,7 @@
   "lookback_days": 3,
   "max_results": 8,
   "explore_count": 2,
-  "explore_min_chars": 1000,
+  "explore_min_chars": 1200,
   "explore_jitter": 6,
   "min_chars": 1500,
   "interests": ["AI", "人工智能", "大模型", "科技", "商业", "财经", "投资", "宏观经济", "政策", "新能源汽车", "电动车", "电池"],
