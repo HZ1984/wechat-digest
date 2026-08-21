@@ -6,3 +6,6 @@ _login_uuid.txt
 _wewe_login_qr.png
 _poll_login.py
 _watch_refresh.py
+_test_quality.py
+_wait_dryrun.py
+.workbuddy/
