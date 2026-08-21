@@ -69,11 +69,12 @@ def is_ad_zone(text: str) -> bool:
     return False
 
 
-def is_low_value(article: dict) -> bool:
-    """标题或正文开头命中低信息密度关键词(公告/日历/预警等)"""
+def is_low_value(article: dict, rules: dict) -> bool:
+    """标题或正文开头命中低信息密度关键词(公告/日历/预警/内部活动等)"""
     title = article.get("title", "")
     head = article.get("text", "")[:300]
-    return any(k in title or k in head for k in LOW_VALUE_KEYWORDS)
+    extra = rules.get("internal_activity", [])
+    return any(k in title or k in head for k in LOW_VALUE_KEYWORDS + extra)
 
 
 def interest_hit(kw: str, text_lower: str):
@@ -83,8 +84,10 @@ def interest_hit(kw: str, text_lower: str):
     return kw.lower() in text_lower
 
 
-def marketing_penalty(title: str, text: str) -> tuple:
-    """返回 (score_delta, is_marketing, reason)。仅标题强营销词/硬广区=排除, 正文弱词不误杀"""
+def marketing_penalty(title: str, text: str, rules: dict) -> tuple:
+    """返回 (score_delta, is_marketing, reason)。
+    否决级: 标题强营销词 / 正文自认广告 / 报告宣发 / B2B软文(标题+访谈)
+    扣分级: 标题弱营销词 / 正文营销词 / 群引流(内容好可保留)"""
     head = text[:1500]
     strong_title = [w for w in STRONG_MARKETING if w in title]
     strong_head = [w for w in STRONG_MARKETING if w in head]
@@ -93,9 +96,37 @@ def marketing_penalty(title: str, text: str) -> tuple:
     if strong_title or len(weak_title) >= 2:
         words = (strong_title or weak_title)[:2]
         return -30, True, f"标题含营销词({', '.join(words)})"
-    if weak_title:
-        return -8, False, f"标题提及弱营销词({weak_title[0]})"
+    # 广告自认: 正文声明是广告/供应方提供 → 一票否决
+    self_ad = [w for w in rules.get("self_ad", []) if w in text[:2000]]
+    if self_ad:
+        return -40, True, f"正文自认广告({self_ad[0]})"
+    # 报告宣发: 标题即报告名(年报/白皮书等), 或 正文"发布《...报告》" + 卖报告 CTA
+    rt = [w for w in rules.get("report_title", []) if w in title]
+    rm = [w for w in rules.get("report_mid", []) if w in title]
+    rc = [w for w in rules.get("report_cta", []) if w in text[:800]]
+    if rt:
+        return -40, True, f"标题为报告宣发({rt[0]})"
+    if rm and (rc or re.search(r"发布《[^》]*报告", text[:400])):
+        return -40, True, "研究报告宣发(标题+卖报告CTA)"
+    if re.search(r"发布《[^》]*报告", text[:400]):
+        return -40, True, "正文为研究报告发布"
+    # B2B 软文: 标题命中软文结构 + 正文有访谈/邀约特征 → 否决; 仅标题 → 重扣
+    b2b_title = [w for w in rules.get("b2b_soft_title", []) if w in title]
+    b2b_interview = [w for w in rules.get("b2b_interview", []) if w in text[:400]]
+    if b2b_title and b2b_interview:
+        return -40, True, f"B2B软文(标题{b2b_title[0]}+访谈)"
     delta, reasons = 0, []
+    if b2b_title:
+        delta -= 20
+        reasons.append(f"标题疑似企业软文({b2b_title[0]})")
+    # 群引流: 开头 200 字加微信/入群 → 扣分(内容好可保留)
+    drain = [w for w in rules.get("group_drain", []) if w in text[:200]]
+    if drain:
+        delta -= 12
+        reasons.append(f"开头群引流({drain[0]})")
+    if weak_title:
+        delta -= 8
+        reasons.append(f"标题提及弱营销词({weak_title[0]})")
     if strong_head:
         delta -= min(len(strong_head) * 4, 12)
         reasons.append(f"正文提及营销词({', '.join(strong_head[:2])})")
@@ -106,6 +137,60 @@ def marketing_penalty(title: str, text: str) -> tuple:
 SKIP_KEYWORDS = ["在小说阅读器", "去阅读", "沉浸阅读", "Original",
                  "The following article is From", "微信扫一扫关注该公众号",
                  "预览时标签不可点", "收录于合集", "个相关内容"]
+
+# ---------------------------------------------------------------- 质量规则(可经 config.json quality_rules 覆盖调参)
+# 背景: 8/21 用户反馈日报混入"长正文营销文"(报告宣发/企业软文)与"目录撑篇幅"短文,
+#       以及微信抓取界面噪声虚增字数。新增: 广告自认/报告宣发/B2B软文=一票否决, 群引流=扣分,
+#       内部活动/党建/卖书=低值剔除, 有效字数替代原始字数判定。
+DEFAULT_QUALITY_RULES = {
+    # 广告自认: 正文前 2000 字出现即一票否决(如 "*本文为广告，内容由供应方提供")
+    "self_ad": ["本文为广告", "内容由供应方提供", "特约发布", "推广内容", "品牌方提供", "广告内容"],
+    # 报告宣发: 标题含这些词即视为报告名/报告推广(正常文章标题不会用)
+    "report_title": ["年报", "白皮书", "蓝皮书", "年度报告"],
+    # 报告宣发(需配合): 标题含"市场研究/研究报告" + 正文卖报告 CTA 或"发布《..报告》"
+    "report_mid": ["市场研究", "研究报告"],
+    "report_cta": ["后台联系我们", "完整报告", "报告全文", "获取报告", "购买报告", "详情可后台", "订阅报告", "索取报告"],
+    # 群引流/私域导流: 正文前 200 字命中 → 扣分(内容好可保留)
+    "group_drain": ["加微信", "入群", "出示名片", "扫码进群", "添加群主", "进群"],
+    # B2B 软文标题特征: 标题命中 + 正文访谈/邀约 → 一票否决; 仅标题命中 → 重扣
+    "b2b_soft_title": ["解决方案", "量产破局", "破局之路", "全链响应", "创新引领", "交流大会", "圆满落幕", "量产密码"],
+    "b2b_interview": ["本期访谈", "特邀", "做客", "专访"],
+    # 内部活动/党建/宣传报道(低值): 标题命中即剔除
+    "internal_activity": ["圆满落幕", "观影", "党建", "工会", "交流会", "学习强国", "金句", "现场活动", "团建", "启动仪式"],
+    # 小程序弹窗文(无有效正文): 前 500 字命中即整篇剔除
+    "mini_program": ["Scan with Weixin to", "微信扫一扫可打开此内容", "使用完整服务", "Got It"],
+}
+
+# 微信抓取噪声锚点: 头部(标题/作者/关注引导)与尾部(互动按钮/服务菜单)
+HEAD_NOISE_ANCHORS = ["在小说阅读器读本章", "点击蓝字，关注我们", "点击上方", "微信扫一扫关注该公众号"]
+TAIL_NOISE_ANCHORS = ["服务  :", "轻点两下取消赞", "Video", "Mini Program", "Share", "Comment", "Favorite", "听过"]
+
+
+def clean_text(raw: str, rules: dict) -> str:
+    """清洗微信抓取噪声, 返回有效正文(用于字数判定/评分/摘要)。
+    1) 小程序弹窗文(正文被授权弹窗占满) → 返回空串
+    2) 头部: 取最靠后的关注引导锚点之后作为正文起点
+    3) 尾部: 取最早出现的互动按钮锚点之前作为正文终点"""
+    if not raw:
+        return ""
+    for k in rules.get("mini_program", []):
+        if k in raw[:500]:
+            return ""
+    start, end = 0, len(raw)
+    cands = [(raw.find(a) + len(a), a) for a in HEAD_NOISE_ANCHORS]
+    head_starts = [(p, a) for p, a in cands if 0 <= p - len(a) < 800]
+    if head_starts:
+        start = max(p for p, _ in head_starts)
+    tail_pos = [raw.find(a) for a in TAIL_NOISE_ANCHORS]
+    tail_pos = [p for p in tail_pos if p > 0 and len(raw) - p < 600]
+    if tail_pos:
+        end = min(tail_pos)
+    clean = raw[start:end]
+    for w in ["Original", "在小说阅读器中沉浸阅读", "在小说阅读器读本章", "去阅读",
+              "收录于合集", "预览时标签不可点", "个相关内容", "The following article is From"]:
+        clean = clean.replace(w, " ")
+    clean = re.sub(r"\s+", " ", clean).strip()
+    return clean
 
 
 def topic_hits(article: dict, cfg: dict) -> dict:
@@ -131,8 +216,10 @@ def count_tags(content_html: str, tag: str) -> int:
 
 
 def heuristic_score(article: dict, cfg: dict) -> dict:
-    title, text = article["title"], article["text"]
+    title = article["title"]
+    text = article.get("clean_text") or article["text"]
     content_html = article["content_html"]
+    rules = {**DEFAULT_QUALITY_RULES, **cfg.get("quality_rules", {})}
     score, reasons = 50.0, []
 
     chars = len(text)
@@ -153,6 +240,12 @@ def heuristic_score(article: dict, cfg: dict) -> dict:
     if structure_bonus >= 10:
         reasons.append(f"结构丰富(标题 {h_count}/代码 {code_blocks}/表格 {tables})")
 
+    # 图多文少: 图集/海报式内容(如报告截图堆砌) → 扣分
+    imgs = count_tags(content_html, "img")
+    if imgs >= 20 and chars < 2500:
+        score -= 10
+        reasons.append(f"图片 {imgs} 张而正文仅 {chars} 字, 疑似图集/海报")
+
     interests = [kw.lower() for kw in cfg.get("interests", []) if kw]
     if interests:
         text_lower = (title + " " + text[:3000]).lower()
@@ -169,7 +262,7 @@ def heuristic_score(article: dict, cfg: dict) -> dict:
             reasons.append(f"高权重主题「{tname}」+{tspec.get('bonus', 0)}"
                            f"(命中: {'、'.join(tspec['hits'])})")
 
-    m_delta, m_flag, m_reason = marketing_penalty(title, text)
+    m_delta, m_flag, m_reason = marketing_penalty(title, text, rules)
     score += m_delta
     if m_reason:
         reasons.append(m_reason)
@@ -189,8 +282,10 @@ def heuristic_score(article: dict, cfg: dict) -> dict:
 
 
 def explore_score(article: dict, cfg: dict, rng) -> dict:
-    title, text = article["title"], article["text"]
+    title = article["title"]
+    text = article.get("clean_text") or article["text"]
     content_html = article["content_html"]
+    rules = {**DEFAULT_QUALITY_RULES, **cfg.get("quality_rules", {})}
     score, reasons = 40.0, []
 
     chars = len(text)
@@ -209,20 +304,17 @@ def explore_score(article: dict, cfg: dict, rng) -> dict:
     tables = count_tags(content_html, "table")
     score += min(h_count * 2, 8) + min(code_blocks * 3, 9) + min(tables * 2, 6)
 
-    interests = [kw.lower() for kw in cfg.get("interests", []) if kw]
-    if interests:
-        text_lower = (title + " " + text[:2000]).lower()
-        hits = [kw for kw in interests if interest_hit(kw, text_lower)]
-        if hits:
-            score -= min(len(hits) * 5, 20)
+    imgs = count_tags(content_html, "img")
+    if imgs >= 20 and chars < 2500:
+        score -= 10
 
-    # 探索区反向规避高权重主题(主线已保证 AI/新能源每日更新, 探索区倾向其他方向)
+    # 探索区仅反向规避高权重主题(主线已保 AI/新能源), 不再对兴趣扣分——质量优先, 多样性其次
     topics = topic_hits(article, cfg)
     if topics:
         score -= sum(t.get("bonus", 0) for t in topics.values())
         reasons.append(f"探索区避开高权重主题({'、'.join(topics)})")
 
-    m_delta, m_flag, m_reason = marketing_penalty(title, text)
+    m_delta, m_flag, m_reason = marketing_penalty(title, text, rules)
     score += m_delta
     if m_reason:
         reasons.append(m_reason)
@@ -253,7 +345,7 @@ def gen_email_html(selected: list, run_date: str, cfg: dict, stale_note: str = "
     n_explore = sum(1 for a in selected if a.get("type") == "explore")
     rows = []
     for i, a in enumerate(selected, 1):
-        digest = clean_digest(a["text"], a["title"])
+        digest = clean_digest(a.get("clean_text") or a["text"], a["title"])
         reason = "；".join(a["eval"]["reasons"][:3]) or "综合质量较好"
         is_explore = a.get("type") == "explore"
         badge = (' <span style="color:#534ab7;background:#eeedfe;padding:1px 8px;'
@@ -350,6 +442,7 @@ def main():
         print(f"[skip] {run_date} 今天已发送过日报, 跳过本次(防止重复推送)")
         return
 
+    quality_rules = {**DEFAULT_QUALITY_RULES, **cfg.get("quality_rules", {})}
     lookback = now - timedelta(days=cfg.get("lookback_days", 3) - 1)
     lookback = lookback.replace(hour=0, minute=0, second=0, microsecond=0)
     candidates, stale_note, skipped_low = [], [], 0
@@ -364,7 +457,8 @@ def main():
         slug = a["link"].split("/s/")[-1].split("?")[0].split("#")[0]
         if a["link"] in sent or ("id:" + slug) in sent or ("title:" + a["title"].strip()) in sent:
             continue
-        if is_low_value(a):   # 低信息密度内容(公告/日历/预警/期刊推荐等)直接剔除
+        a["clean_text"] = clean_text(a.get("text", ""), quality_rules)  # 清洗微信噪声, 后续字数/评分/摘要均用它
+        if is_low_value(a, quality_rules):   # 低信息密度内容(公告/日历/预警/内部活动等)直接剔除
             skipped_low += 1
             continue
         candidates.append(a)
@@ -394,7 +488,8 @@ def main():
     default_min = cfg.get("min_chars", 1500)
 
     def qualified(a, min_chars):
-        return not a["eval"]["flags"].get("marketing") and len(a["text"]) >= min_chars
+        return (not a["eval"]["flags"].get("marketing")
+                and len(a.get("clean_text") or a["text"]) >= min_chars)
 
     # 主线: 先按高权重主题配额直选(AI/新能源有货必保, 宁缺毋滥不强凑), 剩余名额按分数竞争
     main_selected, selected_links = [], set()
@@ -426,7 +521,10 @@ def main():
             main_selected.append(a)
             selected_links.add(a["link"])
     if len(main_selected) < main_count:
-        print(f"[+] 主线达标共 {len(main_selected)} 篇(<{main_count}), 宁缺毋滥不再补位短篇")
+        deficit = main_count - len(main_selected)
+        print(f"[+] 主线达标仅 {len(main_selected)} 篇(<{main_count}), "
+              f"剩余 {deficit} 个名额转入自由探索(质量优先, 全部探索文亦可)")
+        explore_count += deficit
     main_selected = main_selected[:main_count]
 
     selected = list(main_selected)
@@ -437,7 +535,7 @@ def main():
         pool = [a for a in candidates
                 if a["link"] not in chosen_links
                 and not a["eval"]["flags"].get("marketing")
-                and len(a["text"]) >= min_explore]
+                and len(a.get("clean_text") or a["text"]) >= min_explore]
         for a in pool:
             a["explore_eval"] = explore_score(a, cfg, rng)
         explore_ranked = sorted(pool, key=lambda a: a["explore_eval"]["score"], reverse=True)
