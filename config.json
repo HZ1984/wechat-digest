@@ -1,9 +1,9 @@
 {
-  "lookback_days": 3,
+  "lookback_days": 5,
   "max_results": 8,
   "explore_count": 2,
   "explore_min_chars": 1200,
-  "explore_jitter": 6,
+  "explore_jitter": 3,
   "min_chars": 1500,
   "interests": ["AI", "人工智能", "大模型", "科技", "商业", "财经", "投资", "宏观经济", "政策", "新能源汽车", "电动车", "电池"],
   "account_weights": {},
@@ -23,5 +23,16 @@
       "bonus": 12,
       "min_chars": 1200
     }
+  },
+  "quality_rules": {
+    "self_ad": ["本文为广告", "内容由供应方提供", "特约发布", "推广内容", "品牌方提供", "广告内容"],
+    "report_title": ["年报", "白皮书", "蓝皮书", "年度报告"],
+    "report_mid": ["市场研究", "研究报告"],
+    "report_cta": ["后台联系我们", "完整报告", "报告全文", "获取报告", "购买报告", "详情可后台", "订阅报告", "索取报告"],
+    "group_drain": ["加微信", "入群", "出示名片", "扫码进群", "添加群主", "进群"],
+    "b2b_soft_title": ["解决方案", "量产破局", "破局之路", "全链响应", "创新引领", "交流大会", "圆满落幕", "量产密码"],
+    "b2b_interview": ["本期访谈", "特邀", "做客", "专访"],
+    "internal_activity": ["圆满落幕", "观影", "党建", "工会", "交流会", "学习强国", "金句", "现场活动", "团建", "启动仪式"],
+    "mini_program": ["Scan with Weixin to", "微信扫一扫可打开此内容", "使用完整服务", "Got It"]
   }
 }
