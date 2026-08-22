@@ -492,13 +492,15 @@ def main():
                 and len(a.get("clean_text") or a["text"]) >= min_chars)
 
     # 主线: 先按高权重主题配额直选(AI/新能源有货必保, 宁缺毋滥不强凑), 剩余名额按分数竞争
-    main_selected, selected_links = [], set()
+    # 来源去重: 同一公众号最多选1篇, 多篇好文留改天推荐(用户8/22反馈4篇同源问题)
+    main_selected, selected_links, picked_sources = [], set(), set()
     for topic, spec in cfg.get("topic_weights", {}).items():
         qmin = spec.get("min_chars") or default_min
         n_topic = len([a for a in candidates if topic in a.get("topics", {})])
         pool = [a for a in candidates
                 if topic in a.get("topics", {})
                 and a["link"] not in selected_links      # 跨主题去重(已入选不再参与)
+                and not (a.get("source") and a["source"] in picked_sources)  # 来源去重
                 and qualified(a, qmin)]
         pool.sort(key=lambda a: a["eval"]["score"], reverse=True)
         take = min(spec.get("quota", 2), len(pool))
@@ -506,20 +508,38 @@ def main():
             print(f"[+] {topic}: 候选 {n_topic} 篇, 达标 0 篇, 名额让给其他方向(宁缺毋滥)")
             continue
         print(f"[+] {topic}: 候选 {n_topic} 篇, 达标 {len(pool)} 篇, 配额直选 {take} 篇")
-        for a in pool[:take]:
+        taken = 0
+        for a in pool:
+            if taken >= take:
+                break
+            if a.get("source") and a["source"] in picked_sources:
+                continue  # 来源已选(跨主题去重)
             a["type"] = "main"
             main_selected.append(a)
             selected_links.add(a["link"])
+            if a.get("source"):
+                picked_sources.add(a["source"])
+            taken += 1
 
     remaining = main_count - len(main_selected)
     if remaining > 0:
+        # 第一轮: 来源不重复(同一公众号最多1篇)
         rest_pool = [a for a in ranked
-                     if a["link"] not in selected_links and qualified(a, default_min)]
-        print(f"[+] 其余方向按分数竞争剩余 {remaining} 个名额(候选 {len(rest_pool)} 篇)")
-        for a in rest_pool[:remaining]:
+                     if a["link"] not in selected_links
+                     and qualified(a, default_min)]
+        print(f"[+] 其余方向按分数竞争剩余 {remaining} 个名额(候选 {len(rest_pool)} 篇, 来源不重复)")
+        for a in rest_pool:
+            if len(main_selected) >= main_count:
+                break
+            if a.get("source") and a["source"] in picked_sources:
+                continue  # 同来源已选, 留改天推荐
             a["type"] = "main"
             main_selected.append(a)
             selected_links.add(a["link"])
+            if a.get("source"):
+                picked_sources.add(a["source"])
+        # 不在主线放宽来源限制——主线不足的名额全部转入探索区
+        # 探索区门槛更低(min_explore_chars), 能纳入更多不同来源的好文
     if len(main_selected) < main_count:
         deficit = main_count - len(main_selected)
         print(f"[+] 主线达标仅 {len(main_selected)} 篇(<{main_count}), "
@@ -530,7 +550,7 @@ def main():
     selected = list(main_selected)
     if explore_count > 0:
         chosen_links = {a["link"] for a in selected}
-        picked_sources = {a["source"] for a in selected if a["source"]}
+        # picked_sources 已在主线阶段维护(含来源去重), 直接复用
         min_explore = cfg.get("explore_min_chars", 1200)
         pool = [a for a in candidates
                 if a["link"] not in chosen_links
@@ -550,14 +570,18 @@ def main():
             chosen_links.add(a["link"])
             if a["source"]:
                 picked_sources.add(a["source"])
-        for a in explore_ranked:  # 第二轮: 放宽来源限制
+        for a in explore_ranked:  # 第二轮: 放宽来源限制(同来源最多2篇, 避免过度集中)
             if len(selected) >= limit:
                 break
             if a["link"] in chosen_links:
                 continue
+            src_count = sum(1 for s in selected if s.get("source") == a.get("source"))
+            if src_count >= 2:
+                continue  # 同来源已有2篇, 留改天推荐
             a["eval"] = a["explore_eval"]
             a["type"] = "explore"
             selected.append(a)
+            chosen_links.add(a["link"])
 
     n_explore = sum(1 for a in selected if a.get("type") == "explore")
     if not selected:
