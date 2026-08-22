@@ -8,4 +8,9 @@ _poll_login.py
 _watch_refresh.py
 _test_quality.py
 _wait_dryrun.py
+_diag.py
+_diag2.py
+sent_history_pre_822.json
+sent_history_backup.json
+sent_history_cloud.json
 .workbuddy/
