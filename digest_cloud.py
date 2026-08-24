@@ -54,6 +54,7 @@ CLICKBAIT_WORDS = [
     "震惊", "重磅", "万万没想到", "不看后悔", "内部消息", "独家揭秘", "惊天",
     "吓尿", "哭晕", "沸腾了", "炸锅", "疯了", "不可思议", "罕见", "刚刚",
     "突发", "紧急", "马上删", "快看", "出大事", "彻底", "绝了", "必看",
+    "历史上第一次", "史上首次", "史上第一次", "人类首次", "里程碑式", "划时代",
 ]
 
 AD_ZONE_RE = re.compile(r"广告|商务合作|软文")
@@ -84,10 +85,11 @@ def interest_hit(kw: str, text_lower: str):
     return kw.lower() in text_lower
 
 
-def marketing_penalty(title: str, text: str, rules: dict) -> tuple:
+def marketing_penalty(title: str, text: str, rules: dict, source: str = "") -> tuple:
     """返回 (score_delta, is_marketing, reason)。
-    否决级: 标题强营销词 / 正文自认广告 / 报告宣发 / B2B软文(标题+访谈)
-    扣分级: 标题弱营销词 / 正文营销词 / 群引流(内容好可保留)"""
+    否决级: 标题强营销词 / 广告自认(含裸「广告」标记) / 来源自我宣传 / 图书带货 /
+            报告宣发 / 企业活动宣传稿(邀约+活动组合) / 企业PR栏目 / B2B软文 / 官方套话≥3
+    扣分级: 标题弱营销词 / 正文营销词 / 群引流 / 官方套话少量 / 广告区域"""
     head = text[:1500]
     strong_title = [w for w in STRONG_MARKETING if w in title]
     strong_head = [w for w in STRONG_MARKETING if w in head]
@@ -96,10 +98,29 @@ def marketing_penalty(title: str, text: str, rules: dict) -> tuple:
     if strong_title or len(weak_title) >= 2:
         words = (strong_title or weak_title)[:2]
         return -30, True, f"标题含营销词({', '.join(words)})"
-    # 广告自认: 正文声明是广告/供应方提供 → 一票否决
+    # 来源自我宣传: 公众号名在正文中高频出现且伴随宣传语境(关注引导/自我褒扬) → 一票否决
+    # (如 "扫描下方二维码关注'赛迪顾问'公众号" / "结合赛迪顾问的深厚研究积淀";
+    #  而 "今天丁香医生就来给大家讲讲" 这类编辑口吻的自引不算宣传, 避免误杀)
+    src = (source or "").strip()
+    if src and len(src) >= 4:
+        promo_ctx = re.compile(r"关注|二维码|公众号|微信号|深厚|积淀|优势|领先|实力|权威")
+        n_promo = 0
+        for m in re.finditer(re.escape(src), text):
+            ctx = text[max(0, m.start() - 40):m.end() + 40]
+            if promo_ctx.search(ctx):
+                n_promo += 1
+        if n_promo >= 2:
+            return -40, True, f"来源自我宣传({src}宣传式自引{n_promo}次)"
+    # 广告自认: 正文声明是广告/供应方提供/裸「广告」标记 → 一票否决
     self_ad = [w for w in rules.get("self_ad", []) if w in text[:2000]]
     if self_ad:
         return -40, True, f"正文自认广告({self_ad[0]})"
+    # 图书/课程带货: 图书词 + 购买CTA 同现 → 一票否决
+    # (正常书评提"出版社"但无购买CTA, 组合检测避免误杀)
+    bp_words = [w for w in rules.get("book_promo_words", []) if w in title or w in text[:2000]]
+    bp_cta = [w for w in rules.get("book_promo_cta", []) if w in text[:2000]]
+    if bp_words and bp_cta:
+        return -40, True, f"图书带货软文({bp_words[0]}+{bp_cta[0]})"
     # 报告宣发: 标题即报告名(年报/白皮书等), 或 正文"发布《...报告》" + 卖报告 CTA
     rt = [w for w in rules.get("report_title", []) if w in title]
     rm = [w for w in rules.get("report_mid", []) if w in title]
@@ -110,6 +131,16 @@ def marketing_penalty(title: str, text: str, rules: dict) -> tuple:
         return -40, True, "研究报告宣发(标题+卖报告CTA)"
     if re.search(r"发布《[^》]*报告", text[:400]):
         return -40, True, "正文为研究报告发布"
+    # 企业/机构活动宣传稿: 邀约词 + 活动词 同现(标题或正文开头) → 一票否决
+    # (如 "受邀为XX作专题讲座" / "应邀出席培训"; 正常新闻罕用此句式)
+    inv = [w for w in rules.get("corp_invite", []) if w in title or w in head[:400]]
+    evt = [w for w in rules.get("corp_event", []) if w in title or w in head[:400]]
+    if inv and evt:
+        return -40, True, f"企业活动宣传稿({inv[0]}+{evt[0]})"
+    # 企业PR栏目名: 标题命中即否决("顾问之声｜""喜讯｜"等)
+    pr_pat = [w for w in rules.get("pr_title_pattern", []) if w in title]
+    if pr_pat:
+        return -40, True, f"企业PR栏目({pr_pat[0]})"
     # B2B 软文: 标题命中软文结构 + 正文有访谈/邀约特征 → 否决; 仅标题 → 重扣
     b2b_title = [w for w in rules.get("b2b_soft_title", []) if w in title]
     b2b_interview = [w for w in rules.get("b2b_interview", []) if w in text[:400]]
@@ -119,6 +150,13 @@ def marketing_penalty(title: str, text: str, rules: dict) -> tuple:
     if b2b_title:
         delta -= 20
         reasons.append(f"标题疑似企业软文({b2b_title[0]})")
+    # 官方套话/政务文体: 少量命中扣分, ≥3 视为官方宣传稿否决
+    off_hits = [w for w in rules.get("official_register", []) if w in text[:1500]]
+    if len(off_hits) >= 3:
+        return -40, True, f"官方宣传文体(套话x{len(off_hits)})"
+    elif off_hits:
+        delta -= min(len(off_hits) * 5, 10)
+        reasons.append(f"官方文体词({off_hits[0]})")
     # 群引流: 开头 200 字加微信/入群 → 扣分(内容好可保留)
     drain = [w for w in rules.get("group_drain", []) if w in text[:200]]
     if drain:
@@ -143,27 +181,53 @@ SKIP_KEYWORDS = ["在小说阅读器", "去阅读", "沉浸阅读", "Original",
 #       以及微信抓取界面噪声虚增字数。新增: 广告自认/报告宣发/B2B软文=一票否决, 群引流=扣分,
 #       内部活动/党建/卖书=低值剔除, 有效字数替代原始字数判定。
 DEFAULT_QUALITY_RULES = {
-    # 广告自认: 正文前 2000 字出现即一票否决(如 "*本文为广告，内容由供应方提供")
-    "self_ad": ["本文为广告", "内容由供应方提供", "特约发布", "推广内容", "品牌方提供", "广告内容"],
+    # 广告自认: 正文前 2000 字出现即一票否决(如 "*本文为广告，内容由供应方提供",
+    # 以及 FT 中文网软广开头的独立「广告」标记)
+    "self_ad": ["本文为广告", "内容由供应方提供", "特约发布", "推广内容", "品牌方提供", "广告内容",
+                "「广告」", "（广告）", "【广告】", "[广告]", "(广告)"],
+    # 图书/课程带货: 图书词 + 购买CTA 同现 → 一票否决(如 BBC科普三部曲卖书软广)
+    # 注意: 正常书评会提到"出版社"但不会带购买CTA, 组合检测避免误杀
+    "book_promo_words": ["这套书", "三部曲", "当当", "京东图书", "限量发售", "新书首发", "套装",
+                          "折上折", "秒杀价", "豆瓣阅读", "听书卡"],
+    "book_promo_cta": ["点击购买", "立即购买", "扫码购买", "购买链接", "特惠", "限量", "抢购",
+                        "扫描下方二维码", "戳我购买", "现在下单"],
+    # 企业/机构活动宣传稿: 邀约词 + 活动词 同现(标题或正文开头) → 一票否决
+    # 如 "顾问之声｜XX总经理受邀为XX公司作专题讲座"(8/24 漏网案例)
+    "corp_invite": ["受邀", "应邀"],
+    "corp_event": ["专题讲座", "讲座", "培训班", "培训", "论坛", "峰会", "党校", "党性教育",
+                    "签约仪式", "开班仪式", "考察调研", "莅临指导", "表彰大会"],
+    # 企业PR栏目名: 标题命中即否决
+    "pr_title_pattern": ["顾问之声", "公司动态", "战略签约", "应邀出席", "受邀出席",
+                          "公司新闻", "要闻速递", "喜讯", "捷报"],
+    # 官方套话/政务文体: 命中≥3 视为官方宣传稿否决, 少量命中则扣分
+    "official_register": ["深入学习贯彻", "重要讲话精神", "思想政治建设", "充分肯定", "圆满成功",
+                          "圆满举办", "取得良好反响", "高度重视", "参训学员", "亲切交谈",
+                          "表示热烈祝贺", "一致好评"],
+    # 来源自我宣传: 公众号名在正文中出现≥N次(自己发自己宣传) → 一票否决
+    "source_self_promo_min": 3,
     # 报告宣发: 标题含这些词即视为报告名/报告推广(正常文章标题不会用)
     "report_title": ["年报", "白皮书", "蓝皮书", "年度报告"],
     # 报告宣发(需配合): 标题含"市场研究/研究报告" + 正文卖报告 CTA 或"发布《..报告》"
     "report_mid": ["市场研究", "研究报告"],
     "report_cta": ["后台联系我们", "完整报告", "报告全文", "获取报告", "购买报告", "详情可后台", "订阅报告", "索取报告"],
     # 群引流/私域导流: 正文前 200 字命中 → 扣分(内容好可保留)
-    "group_drain": ["加微信", "入群", "出示名片", "扫码进群", "添加群主", "进群"],
+    "group_drain": ["加微信", "入群", "出示名片", "扫码进群", "添加群主", "进群",
+                    "扫描下方二维码关注", "微信号："],
     # B2B 软文标题特征: 标题命中 + 正文访谈/邀约 → 一票否决; 仅标题命中 → 重扣
     "b2b_soft_title": ["解决方案", "量产破局", "破局之路", "全链响应", "创新引领", "交流大会", "圆满落幕", "量产密码"],
     "b2b_interview": ["本期访谈", "特邀", "做客", "专访"],
     # 内部活动/党建/宣传报道(低值): 标题命中即剔除
-    "internal_activity": ["圆满落幕", "观影", "党建", "工会", "交流会", "学习强国", "金句", "现场活动", "团建", "启动仪式"],
+    "internal_activity": ["圆满落幕", "观影", "党建", "党性教育", "党校", "培训班", "工会",
+                          "交流会", "学习强国", "金句", "现场活动", "团建", "启动仪式", "参训"],
     # 小程序弹窗文(无有效正文): 前 500 字命中即整篇剔除
     "mini_program": ["Scan with Weixin to", "微信扫一扫可打开此内容", "使用完整服务", "Got It"],
 }
 
-# 微信抓取噪声锚点: 头部(标题/作者/关注引导)与尾部(互动按钮/服务菜单)
+# 微信抓取噪声锚点: 头部(标题/作者/关注引导)与尾部(互动按钮/服务菜单/账号关注引导)
 HEAD_NOISE_ANCHORS = ["在小说阅读器读本章", "点击蓝字，关注我们", "点击上方", "微信扫一扫关注该公众号"]
-TAIL_NOISE_ANCHORS = ["服务  :", "轻点两下取消赞", "Video", "Mini Program", "Share", "Comment", "Favorite", "听过"]
+TAIL_NOISE_ANCHORS = ["服务  :", "轻点两下取消赞", "Video", "Mini Program", "Share", "Comment",
+                      "Favorite", "听过", "Scan to Follow", "一键关注", "微信矩阵", "点亮星标",
+                      "关注公众号", "关注我们", "Scan with Weixin"]
 
 
 def clean_text(raw: str, rules: dict) -> str:
@@ -262,7 +326,7 @@ def heuristic_score(article: dict, cfg: dict) -> dict:
             reasons.append(f"高权重主题「{tname}」+{tspec.get('bonus', 0)}"
                            f"(命中: {'、'.join(tspec['hits'])})")
 
-    m_delta, m_flag, m_reason = marketing_penalty(title, text, rules)
+    m_delta, m_flag, m_reason = marketing_penalty(title, text, rules, article.get("source", ""))
     score += m_delta
     if m_reason:
         reasons.append(m_reason)
@@ -314,7 +378,7 @@ def explore_score(article: dict, cfg: dict, rng) -> dict:
         score -= sum(t.get("bonus", 0) for t in topics.values())
         reasons.append(f"探索区避开高权重主题({'、'.join(topics)})")
 
-    m_delta, m_flag, m_reason = marketing_penalty(title, text, rules)
+    m_delta, m_flag, m_reason = marketing_penalty(title, text, rules, article.get("source", ""))
     score += m_delta
     if m_reason:
         reasons.append(m_reason)
@@ -443,15 +507,20 @@ def main():
         return
 
     quality_rules = {**DEFAULT_QUALITY_RULES, **cfg.get("quality_rules", {})}
+    # 第0层 · 来源信誉: 黑名单公众号直接剔除(纯企业宣传号/营销号, 借鉴反垃圾 sender reputation)
+    source_blacklist = set(cfg.get("source_blacklist", []))
     lookback = now - timedelta(days=cfg.get("lookback_days", 3) - 1)
     lookback = lookback.replace(hour=0, minute=0, second=0, microsecond=0)
-    candidates, stale_note, skipped_low = [], [], 0
+    candidates, stale_note, skipped_low, skipped_black = [], [], 0, 0
     for a in all_articles:
         try:
             pub = datetime.strptime(a["pub_date"][:10], "%Y-%m-%d")
         except Exception:
             continue
         if pub.date() < lookback.date():
+            continue
+        if a.get("source") in source_blacklist:
+            skipped_black += 1
             continue
         # 兼容三种历史键: 完整链接 / id:slug / title:标题 (与本地 digest.py 互通)
         slug = a["link"].split("/s/")[-1].split("?")[0].split("#")[0]
@@ -463,7 +532,7 @@ def main():
             continue
         candidates.append(a)
     print(f"[+] 回溯 {cfg.get('lookback_days', 3)} 天且未推送过: {len(candidates)} 篇"
-          f" (另有 {skipped_low} 篇低信息密度内容已剔除)")
+          f" (另有 {skipped_low} 篇低信息密度 + {skipped_black} 篇黑名单来源已剔除)")
 
     # 无新文章: 发提示邮件(不中断, 保持系统可感知)
     if not candidates:
