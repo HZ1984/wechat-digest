@@ -113,75 +113,72 @@ def build_source_map(db_path: str) -> dict:
 
 
 def export_articles(cfg: dict) -> bool:
-    rss_url = cfg["rss_url"]
-    print(f"[*] 下载 {rss_url} (约 90MB, 请稍候)...")
-    req = urllib.request.Request(rss_url, headers={"User-Agent": "Mozilla/5.0"})
-    try:
-        with urllib.request.urlopen(req, timeout=600) as resp:
-            xml_bytes = resp.read()
-    except Exception as e:
-        print(f"[error] RSS 下载失败: {e}")
+    """从 SQLite 数据库直接导出近 N 天文章(正文来自 articles.content 缓存列)。
+    相比下载 /feeds/all.rss(默认仅 30 篇且需实时抓取正文):
+    1) 候选池不再受 RSS limit=30 限制, 导出全部已缓存文章
+    2) 无需下载 90MB+ 的 XML, 秒级完成
+    3) 正文缓存由 WeWe RSS 抓取时自动写入(见 dist/feeds/feeds.service.js tryGetContent)
+    """
+    import sqlite3
+    db_path = cfg["db_path"]
+    if not os.path.exists(db_path):
+        print(f"[error] 数据库不存在: {db_path}")
         return False
-    print(f"[*] 已下载 {len(xml_bytes) / 1024 / 1024:.1f} MB, 开始解析...")
-
-    try:
-        root = ET.fromstring(xml_bytes)
-    except Exception as e:
-        print(f"[error] RSS 解析失败: {e}")
-        return False
-
-    source_map = build_source_map(cfg["db_path"])
     lookback = datetime.now(CST).replace(tzinfo=None) - timedelta(days=cfg["days_to_export"])
+    lookback_ts = int(lookback.timestamp())
+    now_ts = int(time.time())
+    print(f"[*] 从数据库导出近 {cfg['days_to_export']} 天文章: {db_path}")
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = conn.execute(
+            """
+            SELECT a.id, a.title, a.publish_time, a.content, f.mp_name AS source
+            FROM articles a
+            LEFT JOIN feeds f ON a.mp_id = f.id
+            WHERE a.publish_time >= ? AND a.publish_time <= ?
+              AND a.content IS NOT NULL AND length(a.content) > 0
+            ORDER BY a.publish_time DESC
+            """,
+            (lookback_ts, now_ts),
+        ).fetchall()
+    except Exception as e:
+        print(f"[error] 数据库查询失败(需要 content 列): {e}")
+        conn.close()
+        return False
+    conn.close()
+
     articles = []
-    for item in root.iter("item"):
-        def _txt(tag):
-            el = item.find(tag)
-            return (el.text or "").strip() if el is not None else ""
-
-        title, link = _txt("title"), _txt("link")
-        if not title or not link:
-            continue
-        try:
-            dt = parsedate_to_datetime(_txt("pubDate"))
-            if dt.tzinfo:
-                dt = dt.astimezone(CST).replace(tzinfo=None)
-        except Exception:
-            continue
-        if dt < lookback:
-            continue
-
-        ce = next((el for el in item if el.tag.endswith("}encoded")), None)
-        content_html = (ce.text or "") if ce is not None else ""
+    for row in rows:
+        dt = datetime.fromtimestamp(row["publish_time"], CST).replace(tzinfo=None)
+        content_html = row["content"] or ""
         if not content_html:
-            content_html = _txt("description")
-        content_html = strip_noise(content_html)
-
-        source = ""
-        if "/s/" in link:
-            article_id = link.split("/s/")[-1].split("?")[0]
-            source = source_map.get(article_id, "")
-
+            continue
+        title = (row["title"] or "").strip()
+        if not title:
+            continue
         articles.append({
-            "title": unescape(title).strip(),
-            "link": link,
+            "title": unescape(title),
+            "link": f"https://mp.weixin.qq.com/s/{row['id']}",
             "pub_date": dt.strftime("%Y-%m-%d %H:%M"),
-            "source": source,
-            "content_html": content_html,
+            "source": row["source"] or "",
+            "content_html": strip_noise(content_html),
             "text": clean_text(content_html),
         })
 
-    n_sources = len({a["source"] for a in articles if a["source"]}) or len(source_map) and len(
-        set(source_map.values()))
     payload = {
         "exported_at": datetime.now(CST).isoformat(timespec="seconds"),
-        "n_sources": len(set(source_map.values())) or n_sources,
+        "n_sources": len({a["source"] for a in articles if a["source"]}),
         "articles": articles,
     }
     out = BASE_DIR / "data" / "articles_recent.json"
     out.parent.mkdir(exist_ok=True)
     out.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-    print(f"[+] 已导出 {len(articles)} 篇(近 {cfg['days_to_export']} 天) -> {out.name}"
+    print(f"[+] 已导出 {len(articles)} 篇(近 {cfg['days_to_export']} 天, "
+          f"{payload['n_sources']} 个来源) -> {out.name}"
           f" ({out.stat().st_size / 1024 / 1024:.1f} MB)")
+    return True
     return True
 
 
@@ -221,31 +218,44 @@ def api_push(cfg: dict) -> bool:
             print(f"[error] 获取文件 sha 失败 HTTP {e.code}: {e.read().decode('utf-8', errors='replace')[:200]}")
             return False
 
-    # 2) PUT 更新
+    # 2) PUT 更新 (带重试: 应对 GitHub 偶发 401/限流/abuse 检测)
     body = {
         "message": f"data: sync {datetime.now(CST).strftime('%Y-%m-%d %H:%M')}",
         "content": content_b64,
     }
     if sha:
         body["sha"] = sha
-    try:
-        req = urllib.request.Request(
-            api_url,
-            data=json.dumps(body).encode("utf-8"),
-            headers={**headers, "Accept": "application/vnd.github+json",
-                     "Content-Type": "application/json"},
-            method="PUT",
-        )
-        with urllib.request.urlopen(req, timeout=120) as r:
-            resp = json.loads(r.read().decode())
-        print(f"[+] 已通过 GitHub API 更新 {path} -> commit {resp['commit']['sha'][:8]}")
-        return True
-    except urllib.error.HTTPError as e:
-        print(f"[error] API 推送失败 HTTP {e.code}: {e.read().decode('utf-8', errors='replace')[:300]}")
-        return False
-    except Exception as e:
-        print(f"[error] API 推送异常: {e}")
-        return False
+    last_err = ""
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(
+                api_url,
+                data=json.dumps(body).encode("utf-8"),
+                headers={**headers, "Accept": "application/vnd.github+json",
+                         "Content-Type": "application/json"},
+                method="PUT",
+            )
+            with urllib.request.urlopen(req, timeout=120) as r:
+                resp = json.loads(r.read().decode())
+            print(f"[+] 已通过 GitHub API 更新 {path} -> commit {resp['commit']['sha'][:8]}")
+            return True
+        except urllib.error.HTTPError as e:
+            last_err = f"HTTP {e.code}: {e.read().decode('utf-8', errors='replace')[:300]}"
+            # 401/403/429 多为临时限流或 abuse 检测, 退避后重试
+            if e.code in (401, 403, 429):
+                wait = 8 * (attempt + 1)
+                print(f"[warn] API 推送 {last_err}, 第 {attempt + 1} 次重试前等待 {wait}s")
+                time.sleep(wait)
+                continue
+            print(f"[error] API 推送失败 {last_err}")
+            return False
+        except Exception as e:
+            last_err = str(e)
+            print(f"[warn] API 推送异常 {e}, 第 {attempt + 1} 次重试")
+            time.sleep(5)
+            continue
+    print(f"[error] API 推送失败(已重试3次): {last_err}")
+    return False
 
 
 def git_push(cfg: dict) -> bool:
@@ -291,7 +301,9 @@ def main():
     if not export_articles(cfg):
         sys.exit(1)
     # git 协议到 github.com:443 在本机不稳定, 已改用 GitHub Contents API
-    api_push(cfg)
+    if not api_push(cfg):
+        print("[!] 同步失败: 文章已导出, 但推送至 GitHub 未完成, 云端数据未更新")
+        sys.exit(1)
     print("SYNC_DONE")
 
 
