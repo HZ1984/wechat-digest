@@ -46,7 +46,7 @@ WEAK_MARKETING = ["广告", "推广", "软文", "合作推广", "商务合作", 
 # 低信息密度内容: 标题命中即一票否决(公告/日历/预警/期刊推荐等短讯栏目)
 LOW_VALUE_KEYWORDS = [
     "迎日历", "日历", "答记者问", "公告", "声明", "预警", "快讯", "简报",
-    "直播预告", "开奖", "中奖", "招聘", "征稿", "报名", "重磅推荐", "期刊推荐",
+    "直播预告", "开奖", "中奖", "招聘启事", "征稿", "报名", "重磅推荐", "期刊推荐",
     "直播开讲", "有奖", "征订",
 ]
 
@@ -58,13 +58,27 @@ CLICKBAIT_WORDS = [
 ]
 
 AD_ZONE_RE = re.compile(r"广告|商务合作|软文")
-AD_CTA_RE = re.compile(r"点击|购买|下单|扫码|咨询|添加微信|优惠|电话")
+# 8/25 修复: 去掉裸"点击"/"电话"——商业/科技分析常讨论"流量—点击—广告"变现链条、
+# "广告业务收入"等术语(虎嗅《百度AI云增长50%》误杀案例), 只保留明确的购买/导流指令
+AD_CTA_RE = re.compile(r"购买|下单|扫码|咨询|添加微信|优惠|立即抢购|抢购|点击购买|点击下方")
 
 
 def is_ad_zone(text: str) -> bool:
-    """检测正文前 1500 字内是否夹带硬广(营销词与引导词相距 100 字内)"""
+    """检测正文前 1500 字内是否夹带硬广(营销词与引导词相距 100 字内)。
+    8/25 修复: 排除媒体文末页脚模板——
+      1) 广告位模板 "即刻购买（广告）"/"点击图片 即刻购买"
+      2) 商务合作联系 "广告、商务合作：<电话/邮箱/微信>"
+    否则南风窗等媒体的通用页脚会被当成硬广区域, 整站短文误杀"""
     head = text[:1500]
     for m in AD_ZONE_RE.finditer(head):
+        pre = head[max(0, m.start() - 30):m.start()]
+        post = head[m.end():m.end() + 40]
+        if re.search(r"即刻购买|点击图片|广告位|广告投放", pre):
+            continue  # 媒体广告位模板
+        if re.search(r"、?\s*商务合作", post[:8]):
+            continue  # 页脚"广告、商务合作：联系方式"
+        if re.match(r"[:：]\s*[a-zA-Z0-9_@.+-]{4,}", post):
+            continue  # 页脚"商务合作：电话/邮箱/微信"
         if AD_CTA_RE.search(head[max(0, m.start() - 100):m.start() + 80]):
             return True
     return False
@@ -109,20 +123,59 @@ def marketing_penalty(title: str, text: str, rules: dict, source: str = "") -> t
             ctx = text[max(0, m.start() - 40):m.end() + 40]
             if promo_ctx.search(ctx):
                 n_promo += 1
-        if n_promo >= 2:
+        # 8/25 修复: 阈值读配置(默认3), 不再硬编码2——原硬编码导致
+        # 腾讯研究院AI周报(自引2次: 标题+自家ima知识库二维码)被误杀, 其主体是数据干货
+        if n_promo >= rules.get("source_self_promo_min", 3):
             return -40, True, f"来源自我宣传({src}宣传式自引{n_promo}次)"
-    # 广告自认: 正文声明是广告/供应方提供/裸「广告」标记 → 一票否决
-    self_ad = [w for w in rules.get("self_ad", []) if w in text[:2000]]
-    if self_ad:
-        return -40, True, f"正文自认广告({self_ad[0]})"
+    # 广告自认: 强声明(本文为广告/供应方提供/本文为推广信息等)全文扫描;
+    # 弱括号标记(（广告）/【广告】等)仅扫前 2000 字, 且排除媒体文末广告位模板
+    # ("点击图片 即刻购买（广告）"——南风窗等媒体每篇都带的通用变现位, 非文章广告)
+    # → 一票否决
+    # 8/25 修复: 强声明改全文, 拦住文末披露"（本文为推广信息）"的软文
+    # (南方周末《刘慈欣推介！这门写作课》, 自认标记在 4294 位置);
+    # 弱标记加"即刻购买/点击图片"等模板排除, 避免南风窗短文(正文仅1133字,
+    # 广告位落在1021位置)整站误杀
+    self_ad = [w for w in rules.get("self_ad", []) if w in text]
+    self_ad_weak = []
+    for w in rules.get("self_ad_weak", []):
+        for m in re.finditer(re.escape(w), text[:2000]):
+            if re.search(r"即刻购买|点击图片|长按识别|扫一扫|扫码查看", text[max(0, m.start() - 25):m.start()]):
+                continue  # 媒体文末广告位模板, 非文章自认广告
+            self_ad_weak.append(w)
+            break
+    if self_ad or self_ad_weak:
+        return -40, True, f"正文自认广告({(self_ad or self_ad_weak)[0]})"
     # 图书/课程带货: 图书词 + 购买CTA 同现 → 一票否决
     # (正常书评提"出版社"但无购买CTA, 组合检测避免误杀)
     bp_words = [w for w in rules.get("book_promo_words", []) if w in title or w in text[:2000]]
     bp_cta = [w for w in rules.get("book_promo_cta", []) if w in text[:2000]]
     if bp_words and bp_cta:
         return -40, True, f"图书带货软文({bp_words[0]}+{bp_cta[0]})"
+    # 课程/训练营带货: 课程词 + (报名CTA 或 具体价格) 同现 → 一票否决
+    # 8/25 新增: 漏网案例 南方周末《刘慈欣推介！这门写作课》,
+    # 结构为"干货开头(科幻科普+作家访谈) + 中后段硬广(优惠价仅需199元/269元 + 点击报名按钮)",
+    # 名人背书(刘慈欣推介)只是幌子, 核心是卖写作课。词表刻意避开"课程""培训"等宽泛词防误杀
+    # (如"AI课程报道""研究生培养"等正常语境), 只取营销色彩浓的课程词。
+    cp_words = [w for w in rules.get("course_promo_words", []) if w in title or w in text]
+    cp_cta = [w for w in rules.get("course_promo_cta", []) if w in text]
+    cp_price = bool(re.search(rules.get("course_price_re", r"\d{2,4}\s*元"), text))
+    if cp_words and (cp_cta or cp_price):
+        return -40, True, f"课程带货软文({cp_words[0]}+{'价格' if cp_price else cp_cta[0]})"
+    # 自营产品带货软文(8/25第2轮新增): 自营产品信号 + 促销词 + 具体价格 同现 → 一票否决
+    # 案例: 丁香医生《别不信！饭前偷喝这一杯，真能帮你少吃点！》——800字科普引子
+    # + 3200字自家产品(吉零膳食纤维粉)硬广: "丁香自家研发" + "开团价直降10元/只要137元/
+    # 单条到手低至1.53元" + "戳图买3盒更划算/赶紧冲/囤起来" + 文末"商品信息/活动时间"。
+    # 判断原则(8/25用户校准): 内容质量与广告位是两个维度——文末作者简介、公众号导流、
+    # 小程序推荐等固定广告位不影响高质量文章入选; 只有"文章主体就是卖货"才否决。
+    # 故 author_promo/app_promo(文末信号)已删除, 此处只拦"全文大比例带货"的自营促销文。
+    ss_words = [w for w in rules.get("shop_self_words", []) if w in text]
+    ss_promo = [w for w in rules.get("shop_promo_words", []) if w in text]
+    ss_price = bool(re.search(r"\d{2,4}\s*元", text))
+    if ss_words and len(ss_promo) >= 2 and ss_price:
+        return -40, True, f"自营产品带货软文({ss_words[0]}+促销x{len(ss_promo)}+价格)"
     # 报告宣发: 标题即报告名(年报/白皮书等), 或 正文"发布《...报告》" + 卖报告 CTA
-    rt = [w for w in rules.get("report_title", []) if w in title]
+    # 8/25 修复: "半年报"含"年报"子串, 财报新闻(如"江淮发布2026年上半年报")被误杀 → 排除
+    rt = [w for w in rules.get("report_title", []) if w in title and not (w == "年报" and "半年报" in title)]
     rm = [w for w in rules.get("report_mid", []) if w in title]
     rc = [w for w in rules.get("report_cta", []) if w in text[:800]]
     if rt:
@@ -141,6 +194,12 @@ def marketing_penalty(title: str, text: str, rules: dict, source: str = "") -> t
     pr_pat = [w for w in rules.get("pr_title_pattern", []) if w in title]
     if pr_pat:
         return -40, True, f"企业PR栏目({pr_pat[0]})"
+    # 新车上市PR稿(8/25新增): 标题"XX正式上市/新车上市/全球首发" + 感叹号宣传文案 → 一票否决
+    # (车云《不造『速成车』，品质不双标！ID. ERA 5S正式上市》98分漏网案例,
+    #  全文歌功颂德无具体售价; 正常上市新闻如"小米YU7正式上市，售价21.59万起"不带感叹号, 不误杀)
+    car_launch = [w for w in rules.get("car_launch_title", []) if w in title]
+    if car_launch and "！" in title:
+        return -40, True, f"新车上市PR稿({car_launch[0]}+感叹号宣传)"
     # B2B 软文: 标题命中软文结构 + 正文有访谈/邀约特征 → 否决; 仅标题 → 重扣
     b2b_title = [w for w in rules.get("b2b_soft_title", []) if w in title]
     b2b_interview = [w for w in rules.get("b2b_interview", []) if w in text[:400]]
@@ -181,16 +240,36 @@ SKIP_KEYWORDS = ["在小说阅读器", "去阅读", "沉浸阅读", "Original",
 #       以及微信抓取界面噪声虚增字数。新增: 广告自认/报告宣发/B2B软文=一票否决, 群引流=扣分,
 #       内部活动/党建/卖书=低值剔除, 有效字数替代原始字数判定。
 DEFAULT_QUALITY_RULES = {
-    # 广告自认: 正文前 2000 字出现即一票否决(如 "*本文为广告，内容由供应方提供",
-    # 以及 FT 中文网软广开头的独立「广告」标记)
-    "self_ad": ["本文为广告", "内容由供应方提供", "特约发布", "推广内容", "品牌方提供", "广告内容",
-                "「广告」", "（广告）", "【广告】", "[广告]", "(广告)"],
+    # 广告自认·强声明: 全文出现即一票否决(如 "*本文为广告，内容由供应方提供"、
+    # 8/25 新增 "本文为推广信息"/"本文为推广" 拦截文末免责声明式软文)
+    "self_ad": ["本文为广告", "内容由供应方提供", "特约发布", "品牌方提供",
+                "本文为推广信息", "本文为推广"],
+    # 广告自认·弱括号标记: 仅前 2000 字命中才否决(FT中文网软广开头的独立「广告」标记;
+    # 不做全文扫描, 防南风窗等媒体文末通用广告位模板"点击图片 即刻购买（广告）"误杀)
+    # 8/25 新增 "- 广告 -" 与 "-广告-"(丁香医生带货文中独立广告标记的带/不带空格变体)
+    "self_ad_weak": ["推广内容", "广告内容", "「广告」", "（广告）", "【广告】", "[广告]", "(广告)",
+                     "- 广告 -", "-广告-"],
     # 图书/课程带货: 图书词 + 购买CTA 同现 → 一票否决(如 BBC科普三部曲卖书软广)
     # 注意: 正常书评会提到"出版社"但不会带购买CTA, 组合检测避免误杀
-    "book_promo_words": ["这套书", "三部曲", "当当", "京东图书", "限量发售", "新书首发", "套装",
+    "book_promo_words": ["这套书", "三部曲", "当当网", "京东图书", "限量发售", "新书首发", "套装",
                           "折上折", "秒杀价", "豆瓣阅读", "听书卡"],
     "book_promo_cta": ["点击购买", "立即购买", "扫码购买", "购买链接", "特惠", "限量", "抢购",
                         "扫描下方二维码", "戳我购买", "现在下单"],
+    # 课程/训练营带货: 课程词 + (报名CTA 或 价格) 同现 → 一票否决(8/25 新增)
+    # 案例: 南方周末《刘慈欣推介！这门写作课》"优惠价仅需199元/269元 + 点击报名按钮"
+    "course_promo_words": ["写作课", "训练营", "音频课", "精品课", "直播课", "购课", "学习资料包",
+                           "答疑视频", "讲师答疑", "报名按钮", "课程福利"],
+    "course_promo_cta": ["优惠价", "仅需", "点击报名", "报名按钮", "扫码报名", "加入学习",
+                         "立即加入", "店铺了解", "戳我", "扫码购", "立即抢课"],
+    "course_price_re": r"\d{2,4}\s*元",
+    # 自营产品带货软文(8/25第2轮新增): 自营产品信号 + 促销词≥2 + 具体价格 → 一票否决
+    # 案例: 丁香医生《别不信！饭前偷喝这一杯》"丁香自家研发"+"开团价直降10元/只要137元/
+    # 单条到手低至1.53元"+"戳图买3盒更划算/赶紧冲/囤起来"。词表刻意避开"产品""推荐"等
+    # 宽泛词, 只取营销色彩浓的自营/促销信号, 防误杀正常健康科普或测评文。
+    "shop_self_words": ["自家研发", "自家出品", "自研", "自有品牌", "自家店", "限时开团", "开团"],
+    "shop_promo_words": ["开团价", "直降", "立省", "领券", "加赠", "买 3 盒", "买3盒", "单盒到手",
+                         "单条到手", "到手价", "戳图", "赶紧冲", "囤起来", "限时优惠", "特惠价",
+                         "秒杀", "前 500 名", "前500名"],
     # 企业/机构活动宣传稿: 邀约词 + 活动词 同现(标题或正文开头) → 一票否决
     # 如 "顾问之声｜XX总经理受邀为XX公司作专题讲座"(8/24 漏网案例)
     "corp_invite": ["受邀", "应邀"],
@@ -199,6 +278,9 @@ DEFAULT_QUALITY_RULES = {
     # 企业PR栏目名: 标题命中即否决
     "pr_title_pattern": ["顾问之声", "公司动态", "战略签约", "应邀出席", "受邀出席",
                           "公司新闻", "要闻速递", "喜讯", "捷报"],
+    # 新车上市PR稿: 标题"XX正式上市/新车上市/全球首发" + 感叹号宣传语 → 一票否决(8/25 新增)
+    # 案例: 车云《不造『速成车』，品质不双标！ID. ERA 5S正式上市》
+    "car_launch_title": ["正式上市", "新车上市", "上市发布会", "全球首发"],
     # 官方套话/政务文体: 命中≥3 视为官方宣传稿否决, 少量命中则扣分
     "official_register": ["深入学习贯彻", "重要讲话精神", "思想政治建设", "充分肯定", "圆满成功",
                           "圆满举办", "取得良好反响", "高度重视", "参训学员", "亲切交谈",
