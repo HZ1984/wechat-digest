@@ -607,7 +607,7 @@ def main():
     source_blacklist = set(cfg.get("source_blacklist", []))
     lookback = now - timedelta(days=cfg.get("lookback_days", 3) - 1)
     lookback = lookback.replace(hour=0, minute=0, second=0, microsecond=0)
-    candidates, stale_note, skipped_low, skipped_black = [], [], 0, 0
+    candidates, stale_note, skipped_low, skipped_black, in_window = [], [], 0, 0, 0
     for a in all_articles:
         try:
             pub = datetime.strptime(a["pub_date"][:10], "%Y-%m-%d")
@@ -615,6 +615,7 @@ def main():
             continue
         if pub.date() < lookback.date():
             continue
+        in_window += 1
         if a.get("source") in source_blacklist:
             skipped_black += 1
             continue
@@ -628,15 +629,34 @@ def main():
             continue
         candidates.append(a)
     print(f"[+] 回溯 {cfg.get('lookback_days', 3)} 天且未推送过: {len(candidates)} 篇"
-          f" (另有 {skipped_low} 篇低信息密度 + {skipped_black} 篇黑名单来源已剔除)")
+          f" (窗口内共 {in_window} 篇, 另有 {skipped_low} 篇低信息密度 + {skipped_black} 篇黑名单来源已剔除)")
 
-    # 无新文章: 发提示邮件(不中断, 保持系统可感知)
+    # 无新文章: 区分「抓取中断(数据源异常)」与「真·暂无好文」
     if not candidates:
-        body = (f"<p>今天没有新文章可推荐。</p>"
-                f"<p>本地数据最后更新时间: {exported_at}(北京时间)。</p>"
-                f"<p>若已超过一天, 说明抓取电脑最近没有开机, 开机后会自动恢复。</p>")
-        send_mail(f"公众号日报 · {run_date} · 今日暂无新文章", body, cfg)
-        print("[+] 已发送'暂无新文章'通知")
+        if in_window == 0:
+            # 所有文章都落在回溯窗口之外 → 几乎可以确定是 WeWe RSS 抓取中断 / 读书账号失效
+            exp_hours = ""
+            try:
+                if exported_at != "unknown":
+                    exp_dt = datetime.fromisoformat(exported_at)
+                    h = (now - exp_dt).total_seconds() / 3600
+                    if h > 1:
+                        exp_hours = f"，已约 {h:.0f} 小时未同步"
+            except Exception:
+                pass
+            body = (f"<p><b>⚠️ 数据源异常：今日候选为 0，且本地文章数据全部落在回溯窗口之外。</b></p>"
+                    f"<p>本地数据最后更新时间：{exported_at}（北京时间）{exp_hours}。</p>"
+                    f"<p>这通常意味着 <b>WeWe RSS 读书账号失效或抓取已中断</b>，请在本机检查 WeWe RSS 读书账号授权"
+                    f"（重新扫码），再运行 sync_data.py 同步数据。</p>"
+                    f"<p>在数据源恢复前，日报将持续为空。</p>")
+            send_mail(f"公众号日报 · {run_date} · 数据源异常提醒", body, cfg)
+            print("[!] 已发送'数据源异常'告警(疑似 WeWe RSS 读书账号失效/抓取中断)")
+        else:
+            body = (f"<p>今天没有新文章可推荐。</p>"
+                    f"<p>本地数据最后更新时间: {exported_at}(北京时间)。</p>"
+                    f"<p>若已超过一天, 说明抓取电脑最近没有开机, 开机后会自动恢复。</p>")
+            send_mail(f"公众号日报 · {run_date} · 今日暂无新文章", body, cfg)
+            print("[+] 已发送'暂无新文章'通知")
         return
 
     # 评分 + 主题识别 + 精选(主线 + 自由探索, 与本地版同一套逻辑)
