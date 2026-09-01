@@ -1,5 +1,5 @@
 {
-  "lookback_days": 15,
+  "lookback_days": 7,
   "max_results": 8,
   "explore_count": 2,
   "explore_min_chars": 800,
