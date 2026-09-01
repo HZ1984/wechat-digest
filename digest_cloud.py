@@ -173,6 +173,13 @@ def marketing_penalty(title: str, text: str, rules: dict, source: str = "") -> t
     ss_price = bool(re.search(r"\d{2,4}\s*元", text))
     if ss_words and len(ss_promo) >= 2 and ss_price:
         return -40, True, f"自营产品带货软文({ss_words[0]}+促销x{len(ss_promo)}+价格)"
+    # 穿搭/生活方式带货(2026-09-01 迭代新增): 服饰单品词 + 种草/促销语境 → 一票否决
+    # (自由探索区也会选中此类离题软文; 否决后同时退出主线与探索)
+    # 语境词同时扫标题(如"轻松穿出高级感"), 单品词扫标题/正文开头; 组合避免误杀服装行业正常分析
+    fp_words = [w for w in rules.get("fashion_promo_words", []) if w in title or w in text[:1500]]
+    fp_cta = [w for w in rules.get("fashion_promo_cta", []) if w in title or w in text[:1500]]
+    if fp_words and fp_cta:
+        return -40, True, f"穿搭/生活方式带货软文({fp_words[0]}+{fp_cta[0]})"
     # 报告宣发: 标题即报告名(年报/白皮书等), 或 正文"发布《...报告》" + 卖报告 CTA
     # 8/25 修复: "半年报"含"年报"子串, 财报新闻(如"江淮发布2026年上半年报")被误杀 → 排除
     rt = [w for w in rules.get("report_title", []) if w in title and not (w == "年报" and "半年报" in title)]
@@ -272,6 +279,13 @@ DEFAULT_QUALITY_RULES = {
                          "秒杀", "前 500 名", "前500名"],
     # 企业/机构活动宣传稿: 邀约词 + 活动词 同现(标题或正文开头) → 一票否决
     # 如 "顾问之声｜XX总经理受邀为XX公司作专题讲座"(8/24 漏网案例)
+    # 穿搭/生活方式带货(2026-09-01 迭代新增): 服饰单品词 + 种草/促销语境 同现 → 一票否决
+    # 案例: 每日豆瓣《新中式"真丝连衣裙", 轻松穿出高级感!》——纯服饰种草软文,
+    #   不属于 AI/科技/商业财经/宏观/新能源汽车 任一兴趣方向, 却被自由探索区选中。
+    #   组合检测(单品词 + 语境词, 且语境词同时扫标题)避免误杀正常行业分析
+    #   (如服装公司财报提"连衣裙销量"不会带"种草/穿出高级感"等种草语境)。
+    "fashion_promo_words": ["真丝连衣裙", "连衣裙", "针织衫", "穿搭", "老钱风", "静奢", "显瘦"],
+    "fashion_promo_cta": ["穿出高级感", "轻松穿出", "种草", "闭眼入", "氛围感", "谁穿谁美", "入手不亏", "气质绝了"],
     "corp_invite": ["受邀", "应邀"],
     "corp_event": ["专题讲座", "讲座", "培训班", "培训", "论坛", "峰会", "党校", "党性教育",
                     "签约仪式", "开班仪式", "考察调研", "莅临指导", "表彰大会"],
