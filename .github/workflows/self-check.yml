@@ -1,9 +1,10 @@
 name: Self Check
 
 on:
-  # 北京时间 09:30 跑(在 Daily Digest 08:00-08:30 窗口之后, 可判断"今天是否真发了")
+  # 北京时间 21:00 跑(用户傍晚/晚间才开机; 仍在 Daily Digest 08:00-08:30 窗口之后, 可判断"今天是否真发了")
+  # 若当天本机未开机/未同步, self_check.py 会自动识别并顺延, 不误报
   schedule:
-    - cron: '30 1 * * *'
+    - cron: '0 13 * * *'
   workflow_dispatch:       # 支持手动触发测试
     inputs:
       dry_run:
