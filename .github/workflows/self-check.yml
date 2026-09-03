@@ -1,0 +1,48 @@
+name: Self Check
+
+on:
+  # 北京时间 09:30 跑(在 Daily Digest 08:00-08:30 窗口之后, 可判断"今天是否真发了")
+  schedule:
+    - cron: '30 1 * * *'
+  workflow_dispatch:       # 支持手动触发测试
+    inputs:
+      dry_run:
+        description: '试跑模式(不发送邮件/不重触发)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write        # 提交 sent_history / health_report / quality_proposal
+  actions: write         # 重触发 Daily Digest 工作流
+
+concurrency:
+  group: self-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run self-check
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          TO_EMAIL: ${{ secrets.TO_EMAIL }}
+        run: python self_check.py ${{ (inputs.dry_run == true) && '--dry-run' || '' }}
+
+      - name: Commit check outputs
+        run: |
+          git config user.name "self-check-bot"
+          git config user.email "actions@github.com"
+          git add data/sent_history.json data/health_report.json data/quality_proposal.json output/ || true
+          git diff --cached --quiet && echo "nothing to commit" && exit 0
+          git commit -m "self-check: $(TZ=Asia/Shanghai date +%F) run"
+          git push
