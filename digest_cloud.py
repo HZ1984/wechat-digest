@@ -572,6 +572,42 @@ def send_mail(subject: str, html_body: str, cfg: dict):
     print(f"[+] 邮件已发送 -> {to_email}")
 
 
+# ---------------------------------------------------------------- 异常告警(多发一两次, 让用户一眼可见, 同日不重复)
+ANOMALY_MARKER_PREFIX = "__anomaly__"
+
+
+def _anomaly_sent_today(sent: dict, run_date: str) -> bool:
+    return f"{ANOMALY_MARKER_PREFIX}{run_date}" in sent
+
+
+def send_anomaly_burst(cfg: dict, run_date: str, subjects: list, body_html: str,
+                       sent: dict, hist_path):
+    """异常时一次性发送 2~3 封报错邮件(主题各异、措辞逐级加重), 让用户一眼在收件箱看到出问题了。
+
+    对应用户要求(比正常 1 封多发一两次, 但避免频繁):
+      - 正常日报每天 1 封; 异常则发 2~3 封(同一 run 内一次性发出, 不会逐小时刷屏)
+      - 用 sent_history 中 '__anomaly__<日期>' 标记做同日去重(随 sent_history 提交回仓库, 跨 workflow run 持久化),
+        值固定为 '1' 而非日期, 不影响主线'当天已发'守卫(该守卫检查 run_date in sent.values())
+      - 当日异常邮件已发过, 同日内后续触发(手动/cron 兜底)不再重复轰炸; 次日重新提醒直到恢复
+    """
+    if _anomaly_sent_today(sent, run_date):
+        print("[!] 今日异常告警邮件已发送过, 跳过重复发送(避免频繁)")
+        return
+    picks = subjects[:3]
+    if "--dry-run" in sys.argv:
+        for s in picks:
+            print(f"[dry-run] 跳过发信(异常告警): {s}")
+        return
+    for s in picks:
+        send_mail(s, body_html, cfg)
+    sent[f"{ANOMALY_MARKER_PREFIX}{run_date}"] = "1"
+    try:
+        hist_path.write_text(json.dumps(sent, ensure_ascii=False, indent=1), encoding="utf-8")
+    except Exception as e:
+        print(f"[warn] 写入异常标记失败(下次可能重复发送): {e}")
+    print(f"[!] 已发送 {len(picks)} 封异常告警邮件(主题各异, 今日不再重复)")
+
+
 # ---------------------------------------------------------------- 主流程
 def main():
     dry_run = "--dry-run" in sys.argv
@@ -591,7 +627,10 @@ def main():
     all_articles = payload.get("articles", [])
     exported_at = payload.get("exported_at", "unknown")
     cfg["n_sources"] = payload.get("n_sources", 18)
-    print(f"[+] 数据: {len(all_articles)} 篇 (本地导出于 {exported_at})")
+    db_stats = payload.get("db_stats", {})
+    print(f"[+] 数据: {len(all_articles)} 篇 (本地导出于 {exported_at})"
+          + (f" | DB近{db_stats.get('days')}天 {db_stats.get('recent_total')}篇, 仅{db_stats.get('recent_with_content')}篇有正文"
+             if db_stats else ""))
 
     # 发送历史(按天去重)
     hist_path = BASE_DIR / "data" / "sent_history.json"
@@ -631,10 +670,15 @@ def main():
     print(f"[+] 回溯 {cfg.get('lookback_days', 3)} 天且未推送过: {len(candidates)} 篇"
           f" (窗口内共 {in_window} 篇, 另有 {skipped_low} 篇低信息密度 + {skipped_black} 篇黑名单来源已剔除)")
 
-    # 无新文章: 区分「抓取中断(数据源异常)」与「真·暂无好文」
+    # 无新文章 / 异常: 区分三类情况, 每类发 2~3 封报错邮件(同日不重复), 让用户一眼可见
+    # db_stats 由 sync_data 带来: recent_total=近N天总文章数, recent_with_content=其中有正文的篇数
+    r_total = db_stats.get("recent_total")
+    r_wc = db_stats.get("recent_with_content")
+    content_broken = (isinstance(r_total, int) and isinstance(r_wc, int)
+                      and r_total >= 5 and r_wc <= max(2, r_total * 0.1))
     if not candidates:
-        if in_window == 0:
-            # 所有文章都落在回溯窗口之外 → 几乎可以确定是 WeWe RSS 抓取中断 / 读书账号失效
+        if in_window == 0 and not content_broken:
+            # 数据流完全断绝: WeWe RSS 没抓到文
             exp_hours = ""
             try:
                 if exported_at != "unknown":
@@ -644,19 +688,45 @@ def main():
                         exp_hours = f"，已约 {h:.0f} 小时未同步"
             except Exception:
                 pass
-            body = (f"<p><b>⚠️ 数据源异常：今日候选为 0，且本地文章数据全部落在回溯窗口之外。</b></p>"
+            body = (f"<p><b>⚠️ 数据源异常：今日候选为 0，本地文章数据全部落在回溯窗口之外。</b></p>"
                     f"<p>本地数据最后更新时间：{exported_at}（北京时间）{exp_hours}。</p>"
-                    f"<p>这通常意味着 <b>WeWe RSS 读书账号失效或抓取已中断</b>，请在本机检查 WeWe RSS 读书账号授权"
-                    f"（重新扫码），再运行 sync_data.py 同步数据。</p>"
+                    f"<p>这通常意味着 <b>WeWe RSS 读书账号失效或抓取已中断</b>，请在本机重新扫码授权读书账号，"
+                    f"再运行 sync_data.py 同步数据。</p>"
                     f"<p>在数据源恢复前，日报将持续为空。</p>")
-            send_mail(f"公众号日报 · {run_date} · 数据源异常提醒", body, cfg)
-            print("[!] 已发送'数据源异常'告警(疑似 WeWe RSS 读书账号失效/抓取中断)")
+            subjs = [
+                f"【紧急·无数据】公众号日报 · {run_date} · 抓取中断",
+                f"【请处理】{run_date} 日报候选为 0 · 疑似读书账号失效",
+                f"【待排查】{run_date} WeWe RSS 抓取中断提醒",
+            ]
+            send_anomaly_burst(cfg, run_date, subjs, body, sent, hist_path)
+        elif content_broken:
+            # 有文但几乎都没正文 → weread 取文代理(502 等)导致正文抓取中断
+            body = (f"<p><b>⚠️ 正文抓取中断：DB 近 {db_stats.get('days')} 天有 <b>{r_total}</b> 篇文，"
+                    f"但仅 <b>{r_wc}</b> 篇带正文。</b></p>"
+                    f"<p>这意味着 <b>WeWe RSS 的 weread 取文代理（PLATFORM_URL）当前不可用</b>"
+                    f"（实测返回 502 Bad Gateway）——文章标题能抓到、正文却抓不下来，"
+                    f"所以日报无正文可精选。这<b>不是</b>订阅号少、也不是质量规则过严。</p>"
+                    f"<p>最新一篇文章：{db_stats.get('latest_publish') or '未知'}；"
+                    f"活跃号数：{db_stats.get('feeds_active') or '未知'}。</p>"
+                    f"<p><b>处理建议</b>：等 weread 代理恢复即可自动好转（新文会自动带正文）。"
+                    f"若长期 502，可在 WeWe RSS 的 .env.local 把 PLATFORM_URL 换一个可用的 weread 转发服务后重启。</p>"
+                    f"<p>在此期间正常日报暂停，避免推送空壳。</p>")
+            subjs = [
+                f"【紧急·正文缺失】公众号日报 · {run_date} · 正文抓取中断",
+                f"【请处理】{run_date} 有 {r_total} 篇文但仅 {r_wc} 篇有正文",
+                f"【待排查】{run_date} weread 取文代理疑似不可用(502)",
+            ]
+            send_anomaly_burst(cfg, run_date, subjs, body, sent, hist_path)
         else:
-            body = (f"<p>今天没有新文章可推荐。</p>"
+            # 有文也有正文, 但都已被推送过(去重)或都是低信息密度 → 真·暂无新文
+            body = (f"<p>今天没有新文章可推荐（候选为 0）。</p>"
                     f"<p>本地数据最后更新时间: {exported_at}(北京时间)。</p>"
                     f"<p>若已超过一天, 说明抓取电脑最近没有开机, 开机后会自动恢复。</p>")
-            send_mail(f"公众号日报 · {run_date} · 今日暂无新文章", body, cfg)
-            print("[+] 已发送'暂无新文章'通知")
+            subjs = [
+                f"【提醒】公众号日报 · {run_date} · 今日无新文可推",
+                f"【待查看】{run_date} 候选为 0(可能已推完近期好文)",
+            ]
+            send_anomaly_burst(cfg, run_date, subjs, body, sent, hist_path)
         return
 
     # 评分 + 主题识别 + 精选(主线 + 自由探索, 与本地版同一套逻辑)
@@ -770,12 +840,25 @@ def main():
 
     n_explore = sum(1 for a in selected if a.get("type") == "explore")
     if not selected:
-        body = (f"<p>今天候选 {len(candidates)} 篇, 但通过质量门槛(正文≥{cfg.get('min_chars', 1500)}字、"
-                f"非营销、非公告/日历/预警等低质内容)的为 0 篇, 因此不推送低质日报。</p>"
-                f"<p>本地数据最后更新时间: {exported_at}(北京时间)。</p>"
-                f"<p>通常第二天新文章增多后会自动恢复。</p>")
-        send_mail(f"公众号日报 · {run_date} · 今日暂无高质量文章", body, cfg)
-        print("[+] 已发送'暂无高质量文章'通知(宁缺毋滥)")
+        # 候选有, 但质量/正文门槛全拦 → 区分"正文缺失(代理502)"还是"质量门槛过严"
+        with_text = sum(1 for a in candidates if len(a.get("clean_text") or a["text"] or "") >= 100)
+        if content_broken:
+            detail = (f"DB 近 {db_stats.get('days')} 天 {r_total} 篇文仅 {r_wc} 篇有正文"
+                      f"（weread 取文代理疑似 502），即便有正文的候选也不足以成刊。")
+        else:
+            detail = (f"候选 {len(candidates)} 篇, 但通过质量门槛(正文≥{cfg.get('min_chars', 1500)}字、"
+                      f"非营销、非公告/日历/预警等低质内容)的为 0 篇"
+                      f"（其中正文≥100字的有 {with_text} 篇）。通常第二天新文章增多后会自动恢复。")
+        body = (f"<p><b>⚠️ 今日候选不足，未推送低质日报（宁缺毋滥）。</b></p>"
+                f"<p>{detail}</p>"
+                f"<p>本地数据最后更新时间: {exported_at}(北京时间)。</p>")
+        subjs = [
+            f"【紧急·无可用好文】公众号日报 · {run_date} · 候选不足",
+            f"【请处理】{run_date} 候选 {len(candidates)} 篇但 0 篇通过质量门槛",
+            f"【待排查】{run_date} 精选候选为空",
+        ]
+        send_anomaly_burst(cfg, run_date, subjs, body, sent, hist_path)
+        print("[!] 已发送'候选不足'告警(宁缺毋滥)")
         return
     print(f"== 精选 Top {len(selected)} (主线 {len(selected) - n_explore} + 探索 {n_explore}) ==")
     for i, a in enumerate(selected, 1):
