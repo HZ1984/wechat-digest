@@ -39,6 +39,9 @@ DEFAULT_CONFIG = {
     "node_exe": "C:/Users/HZ/.workbuddy/binaries/node/versions/22.22.2/node.exe",
     "health_url": "http://localhost:4000/",
     "days_to_export": 5,
+    # weread 取文代理(正文抓取依赖它; 它 502 时标题能抓正文抓不到)。
+    # 留空则从 WeWe RSS 的 .env.local 的 PLATFORM_URL 读取, 再不行才用默认值。
+    "proxy_url": "",
 }
 
 
@@ -180,6 +183,80 @@ def build_source_map(db_path: str) -> dict:
         return {}
 
 
+def _read_env_local_value(cfg: dict, key: str) -> str:
+    """从 WeWe RSS 的 .env.local 读一个配置项(如 PLATFORM_URL)。读不到返回空。"""
+    p = Path(cfg.get("server_dir", "")) / ".env.local"
+    if not p.exists():
+        return ""
+    try:
+        for line in p.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = line.strip()
+            if line.startswith(f"{key}=") and "=" in line:
+                return line.split("=", 1)[1].strip().strip('"').strip("'")
+    except Exception:
+        pass
+    return ""
+
+
+def collect_source_health(cfg: dict) -> dict:
+    """采集"数据源健康度", 供云端 self_check 无需本地访问即可见全貌:
+      - 读书账号状态(accounts.status): 0/缺失 = 失效(需重新扫码), 1 = 正常
+      - 订阅源同步新鲜度(feeds.sync_time): 多少源超过 12h 未同步(可能抓取停滞)
+      - 取文代理可达性(proxy): weread 代理 502 时标题能抓、正文抓不到
+    本地每 2h 同步自动带上这份健康度推到云端。
+    """
+    health = {
+        "checked_at": datetime.now(CST).isoformat(timespec="seconds"),
+        "db_ok": False,
+        "account_status": None, "account_enabled": 0, "account_total": 0,
+        "feeds_total": 0, "feeds_stale": 0, "latest_sync": None,
+        "proxy_ok": None, "proxy_url": "",
+    }
+    db_path = cfg["db_path"]
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        # 读书账号状态
+        try:
+            rows = conn.execute("SELECT status FROM accounts").fetchall()
+            health["account_total"] = len(rows)
+            health["account_enabled"] = sum(1 for r in rows if r["status"] == 1)
+            health["account_status"] = rows[0]["status"] if rows else None
+        except Exception as e:
+            health["account_err"] = str(e)[:120]
+        # 订阅源同步新鲜度
+        try:
+            rows = conn.execute("SELECT sync_time FROM feeds").fetchall()
+            now_ts = int(time.time())
+            health["feeds_total"] = len(rows)
+            latest = None
+            stale = 0
+            for r in rows:
+                st = r["sync_time"]
+                if isinstance(st, (int, float)) and st > 0:
+                    if latest is None or st > latest:
+                        latest = st
+                    if now_ts - st > 12 * 3600:
+                        stale += 1
+            health["feeds_stale"] = stale
+            health["latest_sync"] = (
+                datetime.fromtimestamp(latest, CST).strftime("%Y-%m-%d %H:%M") if latest else None
+            )
+        except Exception as e:
+            health["feeds_err"] = str(e)[:120]
+        health["db_ok"] = True
+        conn.close()
+    except Exception as e:
+        health["db_err"] = str(e)[:160]
+
+    # 取文代理可达性
+    proxy = (cfg.get("proxy_url") or _read_env_local_value(cfg, "PLATFORM_URL")
+             or "https://weread.111965.xyz")
+    health["proxy_url"] = proxy
+    health["proxy_ok"] = check_service(proxy, timeout=8)
+    return health
+
+
 def export_articles(cfg: dict) -> bool:
     """从 SQLite 数据库直接导出近 N 天文章(正文来自 articles.content 缓存列)。
     相比下载 /feeds/all.rss(默认仅 30 篇且需实时抓取正文):
@@ -260,6 +337,7 @@ def export_articles(cfg: dict) -> bool:
         "exported_at": datetime.now(CST).isoformat(timespec="seconds"),
         "n_sources": len({a["source"] for a in articles if a["source"]}),
         "articles": articles,
+        "source_health": collect_source_health(cfg),
         "db_stats": {
             "recent_total": recent_total,
             "recent_with_content": recent_with_content,
