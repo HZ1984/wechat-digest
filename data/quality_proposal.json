@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-03T11:54:59+08:00",
+ "generated_at": "2026-09-03T21:02:36+08:00",
  "note": "本文件为质量规则自迭代的【提案】，不会自动应用。确认后由我修改 digest_cloud.py 主规则并跑回归。",
  "suspected_false_negatives": [
   {
