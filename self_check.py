@@ -92,8 +92,15 @@ def dispatch_digest(token: str) -> bool:
 
 
 # ---------------------------------------------------------------- 健康度分类
-def classify(payload: dict, sent: dict, run_date: str, now: datetime, digest_run) -> tuple:
-    """返回 (issues, auto_actions)。issues 元素: dict(code, severity, title, detail, fix, subject)。"""
+def classify(payload: dict, sent: dict, run_date: str, now: datetime, digest_run,
+             deferred: bool = False, gap_h: float = 0.0) -> tuple:
+    """返回 (issues, auto_actions)。issues 元素: dict(code, severity, title, detail, fix, subject)。
+
+    deferred / gap_h: 由 main 根据 articles_recent.json 的 exported_at 计算。
+      - gap_h <= 24  : 当天有本地同步, 全量检查。
+      - 24 < gap_h <= 48 : 当天本机未开机/未同步(顺延日), 抑制"新鲜度类"误报, 次日再判。
+      - gap_h > 48   : 连续多日未同步, 在抑制误报基础上, 升级一条温和提醒(可能是同步链路真坏了)。
+    """
     sh = payload.get("source_health", {})
     db = payload.get("db_stats", {})
     exported_at = payload.get("exported_at", "unknown")
@@ -206,6 +213,23 @@ def classify(payload: dict, sent: dict, run_date: str, now: datetime, digest_run
                     "subject": "【紧急·未跑批】日报定时任务今天没运行",
                 })
 
+    # ---- 顺延逻辑: 当天本机未开机/未同步(gap_h>24)时, 抑制"新鲜度类"误报 ----
+    # 这些检查依赖"今天有新鲜同步", 电脑没开时数据必然是旧的, 必然误报, 故顺延到次日再判。
+    if deferred:
+        suppress = {"sync_stale", "stale_feeds", "digest_silent"}
+        issues = [i for i in issues if i["code"] not in suppress]
+        # 连续 2 天以上未同步: 可能不只是"没开机", 而是 WeChatDigest-Sync/WeWe RSS 真异常, 升一级温和提醒
+        if gap_h > 48:
+            issues.append({
+                "code": "off_multi_days", "severity": "warning",
+                "title": "本地连续多日未同步",
+                "detail": f"articles_recent.json 最后同步于 {exported_at}(北京时间), 距今约 {gap_h:.0f} 小时。"
+                          f"若你只是这几天没开电脑属正常; 但若每天都开却仍多日无同步, 说明同步链路可能真出问题了。",
+                "fix": "确认本机已开机并联网。若已开机仍无同步, 检查「WeChatDigest-Sync」计划任务是否在跑、"
+                       f"localhost:4000 是否可达、以及 WeWe RSS 取文代理是否可用。",
+                "subject": "【注意·多日未同步】本地数据已超过2天未更新",
+            })
+
     return issues, actions
 
 
@@ -309,8 +333,20 @@ def main():
     sh = payload.get("source_health", {})
     db = payload.get("db_stats", {})
 
+    # 计算"距上次本地同步多久" -> 判断今天本机是否开过机/同步过
+    exported_at = payload.get("exported_at", "unknown")
+    exp_dt = None
+    if exported_at != "unknown":
+        try:
+            exp_dt = datetime.fromisoformat(exported_at)
+        except Exception:
+            exp_dt = None
+    gap_h = (now - exp_dt).total_seconds() / 3600 if exp_dt else 0.0
+    # 当天(截至本次检查)没有本地同步 -> 电脑很可能没开机, 顺延检查, 不误报新鲜度类问题
+    deferred = gap_h > 24
+
     digest_run = get_latest_digest_run_today(run_date, TOKEN)
-    issues, actions = classify(payload, sent, run_date, now, digest_run)
+    issues, actions = classify(payload, sent, run_date, now, digest_run, deferred, gap_h)
 
     # 若 digest 今天已发过异常告警(根因类), 避免与它的告警重复, 去掉 proxy/content 类
     if f"__anomaly__{run_date}" in sent:
@@ -324,6 +360,8 @@ def main():
     report = {
         "run_date": run_date,
         "checked_at": now.isoformat(timespec="seconds"),
+        "deferred": deferred,
+        "hours_since_sync": round(gap_h, 1),
         "issues": [i["code"] for i in issues],
         "actions": actions,
         "source_health": sh,
@@ -344,8 +382,12 @@ def main():
         digest_cloud.send_mail(f"公众号日报 · {run_date} · 自查已自动补跑", info, cfg)
         print("[+] 已发送'自动补跑'通知")
     else:
-        print(f"[+] 链路健康, 无异常 (账号{sh.get('account_enabled')}/{sh.get('account_total')}, "
-              f"代理{'可达' if sh.get('proxy_ok') else '不可达'}, 同步{ payload.get('exported_at')})")
+        if deferred:
+            print(f"[+] 链路自查顺延: 今日本地未同步(距上次约 {gap_h:.0f}h, 可能电脑未开机), "
+                  f"已跳过新鲜度类误报、未发现问题; 明日 {run_date} 继续巡检。")
+        else:
+            print(f"[+] 链路健康, 无异常 (账号{sh.get('account_enabled')}/{sh.get('account_total')}, "
+                  f"代理{'可达' if sh.get('proxy_ok') else '不可达'}, 同步{ payload.get('exported_at')})")
 
     print("SELF_CHECK_DONE")
 
