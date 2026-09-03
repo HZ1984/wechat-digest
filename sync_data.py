@@ -8,9 +8,10 @@
 3. 导出为 data/articles_recent.json(仅几 MB, 避免 GitHub 100MB 限制)
 4. git pull --rebase + commit + push 到 GitHub 私有仓库
 
-配置: sync_config.json(已被 .gitignore 忽略, 含令牌勿提交)
+配置: sync_config.json(令牌建议留空, 改由 Windows 凭据管理器 / 环境变量 GH_TOKEN 提供, 避免明文落盘)
 """
 
+import ctypes
 import json
 import os
 import re
@@ -39,6 +40,64 @@ DEFAULT_CONFIG = {
     "health_url": "http://localhost:4000/",
     "days_to_export": 5,
 }
+
+
+def _read_wincred(target: str) -> str:
+    """直接从 Windows 凭据管理器读取密码(通过 advapi32 CredRead)。
+
+    关键: 不走 `git credential fill` / Git Credential Manager(GCM)。
+    GCM 在凭据缺失或需续期时会弹出登录 GUI 对话框(就是用户看到的"弹窗"),
+    且非交互环境下会卡住导致拿不到令牌 -> 同步失败。直接调系统 API 则
+    完全静默、不会弹窗、任何登录类型下都能读(凭据由同一用户 DPAPI 加密)。
+    读取失败(非 Windows / 凭据不存在)返回空字符串, 由上层回退。
+    """
+    try:
+        adv = ctypes.windll.advapi32
+    except Exception:
+        return ""
+    class CREDCRED(ctypes.Structure):
+        _fields_ = [
+            ("Flags", ctypes.c_uint),
+            ("Type", ctypes.c_uint),
+            ("TargetName", ctypes.c_wchar_p),
+            ("Comment", ctypes.c_wchar_p),
+            ("LastWritten", ctypes.c_ulong * 2),
+            ("CredentialBlobSize", ctypes.c_uint),
+            ("CredentialBlob", ctypes.c_void_p),
+            ("Persist", ctypes.c_uint),
+            ("AttribCount", ctypes.c_ulong),
+            ("Attributes", ctypes.c_void_p),
+            ("TargetAlias", ctypes.c_wchar_p),
+            ("UserName", ctypes.c_wchar_p),
+        ]
+    ptr = ctypes.c_void_p()
+    # CRED_TYPE_GENERIC = 1
+    if not adv.CredReadW(target, 1, 0, ctypes.byref(ptr)) or not ptr:
+        return ""
+    try:
+        c = CREDCRED.from_address(ptr.value)
+        blob = ctypes.string_at(c.CredentialBlob, c.CredentialBlobSize)
+        # 凭据以 UTF-16-LE 存储
+        return blob.decode("utf-16-le", errors="replace")
+    finally:
+        adv.CredFree(ptr)
+
+
+def get_github_token(cfg: dict) -> str:
+    """解析 GitHub 令牌, 优先级:
+    1) 环境变量 GH_TOKEN
+    2) Windows 凭据管理器(wincred, 直接调 advapi32, 不触发 git/GCM 弹窗)
+       —— 你用 git 推代码时 Windows 已自动存下(目标 git:https://github.com)
+    3) sync_config.json 的 token 字段(建议留空, 避免明文落盘)
+    """
+    tok = (os.environ.get("GH_TOKEN") or "").strip()
+    if tok:
+        return tok
+    for target in ("git:https://github.com", "git:https://github.com/"):
+        tok = _read_wincred(target).strip()
+        if tok:
+            return tok
+    return (cfg.get("token") or "").strip()
 
 
 def strip_noise(content_html: str) -> str:
@@ -79,13 +138,22 @@ def start_service(cfg: dict) -> bool:
         return False
     print("[*] 正在后台拉起 WeWe RSS 服务...")
     try:
+        # 无窗口拉起: CREATE_NO_WINDOW 让 node 控制台程序不弹黑框
+        creationflags = (
+            getattr(subprocess, "DETACHED_PROCESS", 0)
+            | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+            | getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        )
+        si = subprocess.STARTUPINFO()
+        si.dwFlags = getattr(subprocess, "STARTF_USESHOWWINDOW", 0)
+        si.wShowWindow = 0  # SW_HIDE
         subprocess.Popen(
             [cfg["node_exe"], "dist/main"],
             cwd=str(server_dir),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            creationflags=getattr(subprocess, "DETACHED_PROCESS", 0)
-            | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
+            creationflags=creationflags,
+            startupinfo=si,
         )
     except Exception as e:
         print(f"[error] 拉起服务失败: {e}")
@@ -143,6 +211,27 @@ def export_articles(cfg: dict) -> bool:
             """,
             (lookback_ts, now_ts),
         ).fetchall()
+        # 诊断统计: 近 N 天总文章数 vs 有正文数 —— 供云端判断是否"正文抓取中断"
+        # (weread 取文代理 502 时, 文章标题能抓到但正文为空, 导致日报无正文可精选)
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT COUNT(*) FROM articles WHERE publish_time>=? AND publish_time<=?",
+            (lookback_ts, now_ts),
+        )
+        recent_total = cur.fetchone()[0]
+        cur.execute(
+            "SELECT COUNT(*) FROM articles WHERE publish_time>=? AND publish_time<=? "
+            "AND content IS NOT NULL AND length(content)>0",
+            (lookback_ts, now_ts),
+        )
+        recent_with_content = cur.fetchone()[0]
+        cur.execute("SELECT MAX(publish_time) FROM articles")
+        latest_pub = cur.fetchone()[0]
+        cur.execute(
+            "SELECT COUNT(DISTINCT mp_id) FROM articles WHERE publish_time>=?",
+            (lookback_ts,),
+        )
+        feeds_active = cur.fetchone()[0]
     except Exception as e:
         print(f"[error] 数据库查询失败(需要 content 列): {e}")
         conn.close()
@@ -171,6 +260,13 @@ def export_articles(cfg: dict) -> bool:
         "exported_at": datetime.now(CST).isoformat(timespec="seconds"),
         "n_sources": len({a["source"] for a in articles if a["source"]}),
         "articles": articles,
+        "db_stats": {
+            "recent_total": recent_total,
+            "recent_with_content": recent_with_content,
+            "latest_publish": datetime.fromtimestamp(latest_pub, CST).strftime("%Y-%m-%d %H:%M") if latest_pub else None,
+            "feeds_active": feeds_active,
+            "days": cfg["days_to_export"],
+        },
     }
     out = BASE_DIR / "data" / "articles_recent.json"
     out.parent.mkdir(exist_ok=True)
@@ -189,10 +285,10 @@ def api_push(cfg: dict) -> bool:
     """
     import base64
 
-    token = cfg["token"]
+    token = get_github_token(cfg)
     repo_url = cfg.get("repo_url", "")
     if not token or not repo_url:
-        print("[error] sync_config.json 缺少 repo_url / token, 无法推送")
+        print("[error] 无法获取 GitHub 令牌(环境变量 GH_TOKEN / Windows 凭据管理器 / sync_config.json 均为空), 无法推送")
         return False
     parts = repo_url.rstrip("/").replace(".git", "").split("/")
     owner, repo = parts[-2], parts[-1]
@@ -259,11 +355,12 @@ def api_push(cfg: dict) -> bool:
 
 
 def git_push(cfg: dict) -> bool:
-    if not cfg["repo_url"] or not cfg["token"]:
-        print("[error] sync_config.json 缺少 repo_url / token, 无法推送")
+    token = get_github_token(cfg)
+    if not cfg["repo_url"] or not token:
+        print("[error] 无法获取 GitHub 令牌(环境变量 GH_TOKEN / Windows 凭据管理器 / sync_config.json 均为空), 无法推送")
         return False
     branch = cfg.get("branch", "main")
-    push_url = cfg["repo_url"].replace("https://", f"https://x-access-token:{cfg['token']}@")
+    push_url = cfg["repo_url"].replace("https://", f"https://x-access-token:{token}@")
     cmds = [
         ["git", "add", "data/"],
         ["git", "-c", "user.name=local-sync", "-c", "user.email=sync@local",
@@ -288,6 +385,25 @@ def git_push(cfg: dict) -> bool:
 
 
 def main():
+    # 无窗口运行(pythonw.exe)时标准输出为 None, 这里把输出同时写一份到 sync_data.log 便于排查
+    try:
+        import io
+        _log = open(BASE_DIR / "sync_data.log", "a", encoding="utf-8")
+        class _Tee:
+            def __init__(self, *s): self.s = s
+            def write(self, x):
+                for st in self.s:
+                    try: st.write(x)
+                    except Exception: pass
+            def flush(self):
+                for st in self.s:
+                    try: st.flush()
+                    except Exception: pass
+        sys.stdout = _Tee(sys.stdout or io.StringIO(), _log)
+        sys.stderr = _Tee(sys.stderr or io.StringIO(), _log)
+    except Exception:
+        pass
+
     cfg_path = BASE_DIR / "sync_config.json"
     cfg = dict(DEFAULT_CONFIG)
     if cfg_path.exists():
