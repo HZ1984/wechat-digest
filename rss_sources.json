@@ -1,0 +1,338 @@
+{
+  "version": 2,
+  "note": "61源映射。已验证RSS标注 verified；其余 rss=null 待补",
+  "verified_count": 6,
+  "sources": {
+    "MP_WXS_3264997043": {
+      "name": "36氪",
+      "site": "https://36kr.com",
+      "rss_candidates": [
+        "https://www.36kr.com/feed",
+        "https://www.36kr.com/feed-newsflash"
+      ],
+      "rss": "https://www.36kr.com/feed",
+      "rss_method": "verified"
+    },
+    "MP_WXS_1432156401": {
+      "name": "虎嗅APP",
+      "site": "https://www.huxiu.com",
+      "rss_candidates": [
+        "https://rss.huxiu.com/",
+        "https://www.huxiu.com/rss"
+      ],
+      "rss": "https://rss.huxiu.com/",
+      "rss_method": "verified"
+    },
+    "MP_WXS_2390380115": {
+      "name": "知乎日报",
+      "site": "https://daily.zhihu.com",
+      "rss_candidates": [
+        "https://www.zhihu.com/rss"
+      ],
+      "rss": "https://www.zhihu.com/rss",
+      "rss_method": "verified"
+    },
+    "MP_WXS_3223096120": {
+      "name": "数字生命卡兹克",
+      "site": "https://kazike.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3210821345": {
+      "name": "互联网怪盗团",
+      "site": "https://www.podhawk.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_2398460220": {
+      "name": "MacTalk",
+      "site": "https://macbook-macbook.com",
+      "rss_candidates": [
+        "https://macshuo.com/?feed=rss2"
+      ],
+      "rss": "https://macshuo.com/?feed=rss2",
+      "rss_method": "verified"
+    },
+    "MP_WXS_3012175632": {
+      "name": "BCG波士顿咨询",
+      "site": "https://www.bcg.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3080539214": {
+      "name": "麦肯锡",
+      "site": "https://www.mckinsey.com.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_2399148061": {
+      "name": "腾讯研究院",
+      "site": "https://www.tisi.org",
+      "rss_candidates": []
+    },
+    "MP_WXS_3556622257": {
+      "name": "精练GymSquare",
+      "site": "https://gymsquare.com.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_2394595381": {
+      "name": "财经杂志",
+      "site": "https://www.caijing.com.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_2396239340": {
+      "name": "FT中文网",
+      "site": "https://www.ftchinese.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_2397683421": {
+      "name": "哈佛商业评论",
+      "site": "https://hbr.org",
+      "rss_candidates": []
+    },
+    "MP_WXS_2399112600": {
+      "name": "经济观察报",
+      "site": "http://www.eeo.com.cn",
+      "rss_candidates": [
+        "http://www.eeo.com.cn/rss.xml"
+      ],
+      "rss": "http://www.eeo.com.cn/rss.xml",
+      "rss_method": "verified"
+    },
+    "MP_WXS_2395148767": {
+      "name": "界面新闻",
+      "site": "https://www.jiemian.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_699115": {
+      "name": "南方周末",
+      "site": "https://www.infzm.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3563068977": {
+      "name": "新京报",
+      "site": "https://www.bjnews.com.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_3090522823": {
+      "name": "彭博Bloomberg",
+      "site": "https://www.bloomberg.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3589865648": {
+      "name": "路透财经早报",
+      "site": "https://www.reuters.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3932645244": {
+      "name": "Barrons巴伦",
+      "site": "https://www.barrons.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_2398330323": {
+      "name": "新周刊",
+      "site": "http://www.neweekly.com.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_3000086780": {
+      "name": "中国发展改革",
+      "site": "http://www.chinareform.org",
+      "rss_candidates": []
+    },
+    "MP_WXS_3521240912": {
+      "name": "国民经略",
+      "site": "https://www.guominjjl.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3919026008": {
+      "name": "锦缎",
+      "site": "https://www.jindiian.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3582869260": {
+      "name": "浪潮工作室",
+      "site": "https://www.thepaper.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_3207173165": {
+      "name": "海关发布",
+      "site": "http://www.customs.gov.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_3085395638": {
+      "name": "中国战略新兴产业",
+      "site": "http://www.chinasei.com.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_2392203592": {
+      "name": "赛迪顾问",
+      "site": "http://www.ccidconsulting.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3867740377": {
+      "name": "南风窗",
+      "site": "http://www.nfcmag.com.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_2392049500": {
+      "name": "中国房地产报",
+      "site": "http://www.fangchan.com.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_2395486760": {
+      "name": "欧时大参",
+      "site": "http://www.oushinet.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_2390768340": {
+      "name": "盖世汽车社区",
+      "site": "https://www.gasgoo.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3099152713": {
+      "name": "盖世汽车每日速递",
+      "site": "https://www.gasgoo.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3093232206": {
+      "name": "中国汽车报",
+      "site": "http://www.cnautonews.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3085700402": {
+      "name": "佐思汽车研究",
+      "site": "https://db.zosAuto.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_2398663221": {
+      "name": "车云",
+      "site": "https://www.cheyun.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3883226169": {
+      "name": "中汽协会数据",
+      "site": "http://www.caam.org.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_3571797095": {
+      "name": "NE时代新能源",
+      "site": "http://www.ne-time.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_3528654154": {
+      "name": "智驾最前沿",
+      "site": "https://www.zhijia.com.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_3944607225": {
+      "name": "智驾小强",
+      "site": "https://www.zhijiaxq.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3929218436": {
+      "name": "新能源汽车报",
+      "site": "http://www.xnyauto.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_1115494781": {
+      "name": "国家地理中文网",
+      "site": "http://www.ngchina.com.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_2058310401": {
+      "name": "丁香医生",
+      "site": "https://dxy.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_1791575621": {
+      "name": "三联生活周刊",
+      "site": "https://www.lifeweek.com.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_3005020641": {
+      "name": "自然系列",
+      "site": "https://www.nature.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3274677462": {
+      "name": "ScienceAAAS",
+      "site": "https://www.science.org",
+      "rss_candidates": []
+    },
+    "MP_WXS_3215787541": {
+      "name": "NEJM医学前沿",
+      "site": "https://www.nejmqianyan.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_3546948982": {
+      "name": "柳叶刀TheLancet",
+      "site": "https://www.thelancet.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3590707840": {
+      "name": "CellPress全科学",
+      "site": "https://www.cell.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3092381378": {
+      "name": "食味艺文志",
+      "site": "https://foodwriter.com.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_3218829094": {
+      "name": "真叫卢俊",
+      "site": "https://zhujiaolujun.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3633044937": {
+      "name": "鹤立烟雨",
+      "site": "https://www.hlyy.com.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_3887677208": {
+      "name": "培风客",
+      "site": "https://www.peifengk.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3888655509": {
+      "name": "谷雨星球",
+      "site": "https://www.guyuxingqiu.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_3943418857": {
+      "name": "三联爱乐",
+      "site": "https://www.lifeweek.com.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_2395519783": {
+      "name": "新京报书评周刊",
+      "site": "https://www.bjnews.com.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_3224826292": {
+      "name": "体育产业生态圈",
+      "site": "https://www.ecosports.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_3095165201": {
+      "name": "留学杂志",
+      "site": "https://www.liuxue.com",
+      "rss_candidates": []
+    },
+    "MP_WXS_2391391020": {
+      "name": "每日豆瓣",
+      "site": "https://www.douban.com",
+      "rss_candidates": [
+        "https://www.douban.com/feed/review/book"
+      ],
+      "rss": "https://www.douban.com/feed/review/book",
+      "rss_method": "verified"
+    },
+    "MP_WXS_2394058960": {
+      "name": "艾瑞网",
+      "site": "https://www.iresearch.com.cn",
+      "rss_candidates": []
+    },
+    "MP_WXS_3095950312": {
+      "name": "科普中国",
+      "site": "https://www.kepuchina.cn",
+      "rss_candidates": []
+    }
+  }
+}
