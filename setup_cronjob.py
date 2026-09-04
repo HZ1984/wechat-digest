@@ -9,7 +9,7 @@
 
 依赖:
   - cron-job.org API Key(https://console.cron-job.org -> Settings 获取)
-  - sync_config.json 中的 GitHub token(仅本地文件)
+  - GitHub token(优先环境变量 GH_TOKEN / Windows 凭据管理器, sync_config.json 可留空)
 
 用法:
   python setup_cronjob.py <CRONJOB_API_KEY>
@@ -18,6 +18,7 @@ import json
 import sys
 import urllib.request
 from pathlib import Path
+from sync_data import get_github_token
 
 BASE_DIR = Path(__file__).resolve().parent
 API = "https://api.cron-job.org/jobs"
@@ -30,7 +31,7 @@ def main():
     api_key = sys.argv[1].strip()
 
     cfg = json.loads((BASE_DIR / "sync_config.json").read_text(encoding="utf-8"))
-    gh_token = cfg["token"]
+    gh_token = get_github_token(cfg)
     repo_url = cfg.get("repo_url", "https://github.com/HZ1984/wechat-digest.git")
     parts = repo_url.rstrip("/").replace(".git", "").split("/")
     owner, repo = parts[-2], parts[-1]

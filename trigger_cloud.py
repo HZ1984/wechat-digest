@@ -8,21 +8,21 @@
      与云端 schedule(08:00/08:15/08:30)互为冗余:
        - 本脚本先触发 -> 云端 schedule 触发时检测到当天已发, 自动跳过
        - 本脚本未触发(电脑关机) -> 云端 schedule 兜底(公开仓库支持)
-依赖: sync_config.json 中的 token (仅本地文件, 不上传)
+依赖: GitHub 令牌(优先环境变量 GH_TOKEN / Windows 凭据管理器, sync_config.json 可留空)
 """
 
 import json
-import subprocess
 import sys
 import urllib.request
 from pathlib import Path
+from sync_data import get_github_token
 
 BASE_DIR = Path(__file__).resolve().parent
 
 
 def main():
     cfg = json.loads((BASE_DIR / "sync_config.json").read_text(encoding="utf-8"))
-    token = cfg["token"]
+    token = get_github_token(cfg)
     repo_url = cfg.get("repo_url", "https://github.com/HZ1984/wechat-digest.git")
     # 从 https://github.com/OWNER/REPO.git 提取 OWNER/REPO
     parts = repo_url.rstrip("/").replace(".git", "").split("/")

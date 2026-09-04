@@ -636,6 +636,17 @@ def main():
                 print(f"[+] 已合并 RSS 重源 {len(rss_arts)} 篇 (合计 {len(all_articles)} 篇)")
         except Exception as e:
             print(f"[warn] 读取 rss_articles.json 失败, 跳过: {e}")
+    # 合并 官网直抓源 (本地 fetch_web.py 维护的 data/web_articles.json, 与 RSS 池解耦)
+    web_path = BASE_DIR / "data" / "web_articles.json"
+    if web_path.exists():
+        try:
+            web_payload = json.loads(web_path.read_text(encoding="utf-8"))
+            web_arts = web_payload.get("articles", [])
+            if web_arts:
+                all_articles = all_articles + web_arts
+                print(f"[+] 已合并 官网直抓 {len(web_arts)} 篇 (合计 {len(all_articles)} 篇)")
+        except Exception as e:
+            print(f"[warn] 读取 web_articles.json 失败, 跳过: {e}")
     exported_at = payload.get("exported_at", "unknown")
     cfg["n_sources"] = payload.get("n_sources", 18)
     db_stats = payload.get("db_stats", {})

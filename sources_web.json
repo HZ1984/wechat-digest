@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "note": "官网直抓配置（与 RSS 池解耦，独立产出 web_articles.json）。list_urls=列表页；url_pattern=文章链接必须命中的正则（强过滤导航/页脚噪声）；title_min/max=标题字数；date_re=从URL提取日期(YYYYMMDD)；max_per_source=每源最多取多少；title_clean_re=清理标题前缀(如'推荐')。JS渲染站(中国汽车报/三联/南风窗)暂未收录，待补频道页/API。",
+  "exclude_keywords": ["招聘", "简历", "BEIJING", "京公网安备", "沪公网安备", "隐私政策", "Copyright", "版权所有"],
+  "sources": {
+    "财经杂志": {
+      "site": "https://www.caijing.com.cn/",
+      "list_urls": ["https://www.caijing.com.cn/", "https://www.caijing.com.cn/channel/102.jsp"],
+      "url_pattern": "caijing\\.com\\.cn/20\\d{6}/\\d+\\.shtml",
+      "title_min": 8, "title_max": 50, "max_per_source": 25,
+      "date_re": "caijing\\.com\\.cn/(\\d{8})/"
+    },
+    "界面新闻": {
+      "site": "https://www.jiemian.com/",
+      "list_urls": ["https://www.jiemian.com/"],
+      "url_pattern": "jiemian\\.com/article/\\d+\\.html",
+      "title_min": 8, "title_max": 50, "max_per_source": 25
+    },
+    "南方周末": {
+      "site": "https://www.infzm.com/",
+      "list_urls": ["https://www.infzm.com/"],
+      "url_pattern": "infzm\\.com/contents/\\d+",
+      "title_min": 8, "title_max": 50, "max_per_source": 20
+    },
+    "新京报": {
+      "site": "https://www.bjnews.com.cn/",
+      "list_urls": ["https://www.bjnews.com.cn/"],
+      "url_pattern": "bjnews\\.com\\.cn/detail/\\d+\\.html",
+      "title_min": 8, "title_max": 50, "max_per_source": 25
+    },
+    "澎湃新闻": {
+      "site": "https://www.thepaper.cn/",
+      "list_urls": ["https://www.thepaper.cn/", "https://www.thepaper.cn/lastest?page=1"],
+      "url_pattern": "thepaper\\.cn/newsDetail_forward_\\d+",
+      "title_min": 8, "title_max": 50, "max_per_source": 25,
+      "title_clean_re": "^(推荐|广告|直播)?\\s*"
+    }
+  }
+}
