@@ -625,6 +625,17 @@ def main():
         return
     payload = json.loads(data_path.read_text(encoding="utf-8"))
     all_articles = payload.get("articles", [])
+    # 合并 RSS 重源 (云端 rss-sync 每 2 小时维护的 data/rss_articles.json, 独立于 WeChat 源)
+    rss_path = BASE_DIR / "data" / "rss_articles.json"
+    if rss_path.exists():
+        try:
+            rss_payload = json.loads(rss_path.read_text(encoding="utf-8"))
+            rss_arts = rss_payload.get("articles", [])
+            if rss_arts:
+                all_articles = all_articles + rss_arts
+                print(f"[+] 已合并 RSS 重源 {len(rss_arts)} 篇 (合计 {len(all_articles)} 篇)")
+        except Exception as e:
+            print(f"[warn] 读取 rss_articles.json 失败, 跳过: {e}")
     exported_at = payload.get("exported_at", "unknown")
     cfg["n_sources"] = payload.get("n_sources", 18)
     db_stats = payload.get("db_stats", {})
