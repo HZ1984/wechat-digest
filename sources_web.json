@@ -1,7 +1,7 @@
 {
-  "version": 1,
-  "note": "官网直抓配置（与 RSS 池解耦，独立产出 web_articles.json）。list_urls=列表页；url_pattern=文章链接必须命中的正则（强过滤导航/页脚噪声）；title_min/max=标题字数；date_re=从URL提取日期(YYYYMMDD)；max_per_source=每源最多取多少；title_clean_re=清理标题前缀(如'推荐')。JS渲染站(中国汽车报/三联/南风窗)暂未收录，待补频道页/API。",
-  "exclude_keywords": ["招聘", "简历", "BEIJING", "京公网安备", "沪公网安备", "隐私政策", "Copyright", "版权所有"],
+  "version": 2,
+  "note": "官网直抓配置（与 RSS 池解耦，独立产出 web_articles.json）。list_urls=列表页；url_pattern=文章链接必须命中的正则（强过滤导航/页脚/车型库/人物页噪声）；title_min/max=标题字数；date_re=从URL提取日期(YYYYMMDD)；max_per_source=每源最多取多少；title_clean_re=清理标题前缀/作者后缀/查看详情。已验证可达并能提取干净文章列表的源共15个。JS渲染站(机器之心/车云网)、反爬站(海关412/FT超时)、域名失效站(国民经略/锦缎)未收录。",
+  "exclude_keywords": ["招聘", "简历", "BEIJING", "京公网安备", "沪公网安备", "隐私政策", "Copyright", "版权所有", "举报受理", "处置规则", "关于我们", "联系我们"],
   "sources": {
     "财经杂志": {
       "site": "https://www.caijing.com.cn/",
@@ -34,6 +34,63 @@
       "url_pattern": "thepaper\\.cn/newsDetail_forward_\\d+",
       "title_min": 8, "title_max": 50, "max_per_source": 25,
       "title_clean_re": "^(推荐|广告|直播)?\\s*"
+    },
+    "财新网": {
+      "site": "https://www.caixin.com/",
+      "list_urls": ["https://www.caixin.com/", "https://finance.caixin.com/", "https://china.caixin.com/"],
+      "url_pattern": "caixin\\.com/20\\d{6}/\\d+\\.html",
+      "title_min": 8, "title_max": 60, "max_per_source": 25,
+      "date_re": "caixin\\.com/(\\d{8})/"
+    },
+    "21世纪经济报道": {
+      "site": "https://www.21jingji.com/",
+      "list_urls": ["https://www.21jingji.com/"],
+      "url_pattern": "21jingji\\.com/article/20\\d{6}/",
+      "title_min": 8, "title_max": 60, "max_per_source": 25,
+      "title_clean_re": "^(视频|21视频)\\s*"
+    },
+    "第一财经": {
+      "site": "https://www.yicai.com/",
+      "list_urls": ["https://www.yicai.com/", "https://www.yicai.com/news/"],
+      "url_pattern": "yicai\\.com/(news|brief)/\\d+\\.html",
+      "title_min": 8, "title_max": 60, "max_per_source": 25
+    },
+    "钛媒体": {
+      "site": "https://www.tmtpost.com/",
+      "list_urls": ["https://www.tmtpost.com/", "https://www.tmtpost.com/nictation"],
+      "url_pattern": "tmtpost\\.com/(?!tag/).*\\d{6,}\\.html",
+      "title_min": 8, "title_max": 60, "max_per_source": 25
+    },
+    "量子位": {
+      "site": "https://www.qbitai.com/",
+      "list_urls": ["https://www.qbitai.com/", "https://www.qbitai.com/archives/category/news"],
+      "url_pattern": "qbitai\\.com/20\\d{4}/\\d{2}/\\d+\\.html",
+      "title_min": 8, "title_max": 60, "max_per_source": 20
+    },
+    "盖世汽车": {
+      "site": "https://www.gasgoo.com/",
+      "list_urls": ["https://www.gasgoo.com/", "https://www.gasgoo.com/robot/news/"],
+      "url_pattern": "gasgoo\\.com/(robot/)?news/\\d{5,}",
+      "title_min": 8, "title_max": 60, "max_per_source": 12,
+      "title_clean_re": "\\s*(查看详情|→).*$"
+    },
+    "科普中国": {
+      "site": "https://www.kepuchina.cn/",
+      "list_urls": ["https://www.kepuchina.cn/", "https://www.kepuchina.cn/article"],
+      "url_pattern": "kepuchina\\.cn/article/articleinfo",
+      "title_min": 8, "title_max": 60, "max_per_source": 15
+    },
+    "中国新闻周刊": {
+      "site": "https://www.inewsweek.cn/",
+      "list_urls": ["https://www.inewsweek.cn/", "https://www.inewsweek.cn/society/", "https://www.inewsweek.cn/business/"],
+      "url_pattern": "inewsweek\\.cn/\\w+/20\\d{2}-\\d{2}-\\d{2}/\\d+\\.shtml",
+      "title_min": 8, "title_max": 60, "max_per_source": 20
+    },
+    "NE时代新能源": {
+      "site": "http://www.ne-time.cn/",
+      "list_urls": ["http://www.ne-time.cn/", "http://www.ne-time.cn/web/article/"],
+      "url_pattern": "ne-time\\.cn/web/article/\\d+",
+      "title_min": 8, "title_max": 60, "max_per_source": 12
     }
   }
 }

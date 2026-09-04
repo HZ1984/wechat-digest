@@ -179,15 +179,23 @@ class LinkExtractor(HTMLParser):
             self._cur_text.append(data)
 
 
-def fetch_html(url: str, timeout: int = 15) -> str:
-    req = Request(url, headers={"User-Agent": UA, "Accept": "text/html, */*"})
-    with opener.open(req, timeout=timeout) as r:
-        raw = r.read()
-    enc = r.headers.get_content_charset() or detect_encoding(raw)
-    try:
-        return raw.decode(enc, "replace")
-    except LookupError:
-        return raw.decode("gbk", "replace")
+def fetch_html(url: str, timeout: int = 15, retries: int = 2) -> str:
+    last = None
+    for attempt in range(retries + 1):
+        try:
+            req = Request(url, headers={"User-Agent": UA, "Accept": "text/html, */*"})
+            with opener.open(req, timeout=timeout) as r:
+                raw = r.read()
+            enc = r.headers.get_content_charset() or detect_encoding(raw)
+            try:
+                return raw.decode(enc, "replace")
+            except LookupError:
+                return raw.decode("gbk", "replace")
+        except Exception as e:
+            last = e
+            if attempt < retries:
+                time.sleep(2 * (attempt + 1))
+    raise last
 
 
 def extract_content(html_text: str) -> str:
@@ -203,7 +211,7 @@ def extract_content(html_text: str) -> str:
     # 退化: 整页去标签, 跳过头 600 字符(导航)取正文
     all_text = strip_html(t)
     if len(all_text) > 600:
-        return all_text[600:600 + 1600].strip()
+        return all_text[600:600 + 1000].strip()
     return all_text[:1600].strip()
 
 
@@ -337,7 +345,7 @@ def main():
         total_skip += skip
         total_soft += soft
         print(f"  → 新增 {new} / 跳过 {skip} / 软文 {soft}")
-        time.sleep(0.3)
+        time.sleep(1.5)
     print(f"\n[web] 本轮抓取: 新增 {total_new} / 软文拦截 {total_soft}")
 
     # 合并历史
