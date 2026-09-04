@@ -1,0 +1,32 @@
+name: RSS Sync
+
+# 每 2 小时抓取各媒体官网 RSS, 过滤软文后写入 data/rss_articles.json, 供每日精选日报合并使用。
+# GitHub Actions cron 为 UTC; '15 */2 * * *' = 每 2 小时的第 15 分钟 (北京时间xx:15)。
+on:
+  schedule:
+    - cron: '15 */2 * * *'
+  workflow_dispatch:        # 支持手动触发测试
+
+permissions:
+  contents: write          # 允许提交 data/rss_articles.json 回仓库
+
+concurrency:
+  group: rss-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run RSS sync (抓 RSS -> 过滤软文 -> 合并 -> 推送云端)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_PATH: ${{ github.repository }}
+          DAYS_KEEP: '10'
+        run: python rss_sync_cloud.py
