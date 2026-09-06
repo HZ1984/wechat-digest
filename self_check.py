@@ -370,8 +370,18 @@ def main():
     run_date = now.strftime("%Y-%m-%d")
     print(f"== 链路自查自迭代 · {run_date} (北京时间) ==")
 
-    # 数据
-    payload = json.loads((BASE_DIR / "data" / "articles_recent.json").read_text(encoding="utf-8"))
+    # 数据: articles_recent.json(微信池)由本地 sync_data 维护, 云端可能暂缺。
+    # 缺失/损坏时不崩溃 —— 跳过健康巡检, 仍跑质量自迭代并产出提案, 保证每日自查稳定。
+    articles_path = BASE_DIR / "data" / "articles_recent.json"
+    if articles_path.exists():
+        try:
+            payload = json.loads(articles_path.read_text(encoding="utf-8"))
+        except Exception as e:
+            print(f"[warn] 读取 articles_recent.json 失败: {e}, 降级跳过健康巡检, 仅跑质量自迭代")
+            payload = {}
+    else:
+        print("[warn] articles_recent.json 不存在(本地未同步/云端暂缺), 降级跳过健康巡检, 仅跑质量自迭代")
+        payload = {}
     hist_path = BASE_DIR / "data" / "sent_history.json"
     sent = json.loads(hist_path.read_text(encoding="utf-8")) if hist_path.exists() else {}
     sh = payload.get("source_health", {})
@@ -390,7 +400,11 @@ def main():
     deferred = gap_h > 24
 
     digest_run = get_latest_digest_run_today(run_date, TOKEN)
-    issues, actions = classify(payload, sent, run_date, now, digest_run, deferred, gap_h)
+    if payload:
+        issues, actions = classify(payload, sent, run_date, now, digest_run, deferred, gap_h)
+    else:
+        # 健康数据不可用, 不做链路巡检(避免误报), 仅保留质量自迭代结论
+        issues, actions = [], []
 
     # 若 digest 今天已发过异常告警(根因类), 避免与它的告警重复, 去掉 proxy/content 类
     if f"__anomaly__{run_date}" in sent:
@@ -454,7 +468,10 @@ def main():
         digest_cloud.send_mail(f"公众号日报 · {run_date} · 自查已自动补跑", info, cfg)
         print("[+] 已发送'自动补跑'通知")
     else:
-        if deferred:
+        if not payload:
+            print(f"[+] 健康数据(articles_recent.json)暂缺, 已跳过链路巡检; 质量自迭代完成 "
+                  f"(回归 {reg.get('passed')}/{reg.get('total')} 通过)")
+        elif deferred:
             print(f"[+] 链路自查顺延: 今日本地未同步(距上次约 {gap_h:.0f}h, 可能电脑未开机), "
                   f"已跳过新鲜度类误报、未发现问题; 明日 {run_date} 继续巡检。")
         else:
