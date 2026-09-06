@@ -235,6 +235,16 @@ def classify(payload: dict, sent: dict, run_date: str, now: datetime, digest_run
 
 # ---------------------------------------------------------------- 质量自迭代(提案, 不自动改)
 def quality_iterate(payload: dict, cfg: dict) -> dict:
+    """委托给 quality_iteration 模块(三池扫描 + 回归 + 双向扫描 + 检索词生成)。
+
+    2026-09-06 升级: 原实现只扫微信池、只找"误杀", 漏掉 RSS/官网直抓两个新池,
+    且无法发现"漏网", 更不能防止规则退化。新模块补齐这四件事。
+    """
+    import quality_iteration as QI
+    return QI.run(BASE_DIR, cfg)
+
+
+def _legacy_quality_iterate(payload: dict, cfg: dict) -> dict:
     """扫描近期被 is_low_value 过滤、但篇幅充足且非营销的候选 -> 疑似误杀 -> 产出修正提案。
     仅产出 proposal 文件, 不修改 digest_cloud.py 主规则。
     """
@@ -294,7 +304,41 @@ def quality_iterate(payload: dict, cfg: dict) -> dict:
 
 
 # ---------------------------------------------------------------- 报告
-def build_body(issues: list, sh: dict, db: dict, exported_at: str) -> str:
+def quality_section(proposal: dict) -> str:
+    """把筛选机制自迭代的结果渲染成邮件小节, 让每日邮件能看到迭代方向。"""
+    if not proposal:
+        return ""
+    reg = proposal.get("regression", {})
+    icon = "✓" if reg.get("status") == "pass" else "✗"
+    lines = [
+        f"<li><b>回归测试</b>: {icon} {reg.get('passed', '?')}/{reg.get('total', '?')} 通过"
+        f"（质量红线, 不通过即视为回退）</li>",
+    ]
+    pools = proposal.get("pool_sizes", {})
+    if pools:
+        lines.append("<li><b>源池</b>: " +
+                     "、".join(f"{k} {v} 篇" for k, v in pools.items()) + "</li>")
+
+    fn = proposal.get("suspected_false_negatives", [])
+    fp = proposal.get("suspected_false_positives", [])
+    lines.append(f"<li><b>疑似误杀</b>(好文被过滤): {len(fn)} 条</li>")
+    lines.append(f"<li><b>疑似漏网</b>(低质却高分): {len(fp)} 条</li>")
+    for it in fp[:4]:
+        kind = "/".join(it.get("signals", {}).keys())
+        lines.append(f"<li style='color:#b26a00'>　! {it.get('score')}分 [{kind}] "
+                     f"{it.get('title', '')[:34]}</li>")
+    for it in fn[:3]:
+        lines.append(f"<li style='color:#666'>　? {it.get('score')}分 "
+                     f"{it.get('title', '')[:34]}（{it.get('length')}字）</li>")
+
+    topics = proposal.get("research_topics", [])
+    if topics:
+        lines.append("<li><b>待检索主题</b>: " + "、".join(topics[:3]) + "</li>")
+    return ("<hr><p><b>筛选机制自迭代（质量优先 · 宁缺毋滥）</b></p><ul>"
+            + "".join(lines) + "</ul>")
+
+
+def build_body(issues: list, sh: dict, db: dict, exported_at: str, proposal: dict = None) -> str:
     sev_cn = {"critical": "🔴 紧急", "warning": "🟡 注意"}
     rows = []
     for i in issues:
@@ -352,9 +396,37 @@ def main():
     if f"__anomaly__{run_date}" in sent:
         issues = [i for i in issues if i["code"] not in ("proxy", "content_broken")]
 
-    # 质量自迭代提案(仅产出文件)
+    # 质量自迭代(三池扫描 + 回归 + 双向扫描 + 检索词生成; 仅产出提案文件)
     proposal = quality_iterate(payload, cfg)
-    print(f"[+] 质量自迭代提案: {len(proposal.get('suspected_false_negatives', []))} 条疑似误杀候选 -> data/quality_proposal.json")
+    reg = proposal.get("regression", {})
+    print(f"[+] 质量自迭代: 回归 {reg.get('passed', '?')}/{reg.get('total', '?')} 通过 | "
+          f"疑似误杀 {len(proposal.get('suspected_false_negatives', []))} 条 | "
+          f"疑似漏网 {len(proposal.get('suspected_false_positives', []))} 条")
+
+    # 质量红线: 回归不过 = 规则退化。质量优先于一切, 故插到最前面
+    if reg.get("status") == "fail":
+        detail = "；".join(
+            f"《{f.get('title', '')[:22]}》期望{f.get('expect')}实为{f.get('actual')}"
+            for f in reg.get("failed", [])[:3])
+        issues.insert(0, {
+            "code": "quality_regression", "severity": "critical",
+            "title": "文章筛选规则退化(回归测试未通过)",
+            "detail": f"回归用例 {reg['passed']}/{reg['total']} 通过, 失败: {detail}。"
+                      f"说明最近的规则调整引入了回退 —— 要么放进了低质文, 要么误杀了好文。",
+            "fix": "质量红线。需回滚或修正规则后重跑回归(命令: python quality_iteration.py)。"
+                   f"我不会自动放宽门槛来让回归通过 —— 那违背宁缺毋滥。",
+            "subject": "【紧急·质量回退】筛选规则回归测试未通过",
+        })
+
+    # 质量门槛被放宽(同样违背"质量优先")
+    for w in proposal.get("quality_priority_warnings", []):
+        issues.append({
+            "code": "quality_threshold", "severity": "warning",
+            "title": "质量门槛被放宽",
+            "detail": w,
+            "fix": "宁缺毋滥: 无高质量文章时应少推甚至空刊, 而不是降低门槛凑数。请确认这是有意为之。",
+            "subject": "【注意·质量门槛】筛选阈值被调低",
+        })
 
     # 健康报告(始终写, 供后续复盘)
     report = {

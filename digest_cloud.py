@@ -85,11 +85,39 @@ def is_ad_zone(text: str) -> bool:
 
 
 def is_low_value(article: dict, rules: dict) -> bool:
-    """标题或正文开头命中低信息密度关键词(公告/日历/预警/内部活动等)"""
-    title = article.get("title", "")
-    head = article.get("text", "")[:300]
-    extra = rules.get("internal_activity", [])
-    return any(k in title or k in head for k in LOW_VALUE_KEYWORDS + extra)
+    """低信息密度内容(公告/日历/预警/内部活动等)判定。
+
+    2026-09-06 自迭代修复 —— 原实现对"标题 或 正文前300字"做裸子串匹配, 严重误杀:
+      - 《比亚迪滴滴合资公司被转卖》  正文"信濠光电发布公告"      -> 命中「公告」
+      - 《被折断舌头的标本…》         正文"博物馆发声明强烈谴责"  -> 命中「声明」
+      - 《公考培训行业的日子越来越难》正文"公考报名人数仍在增长"  -> 命中「报名」
+      实测全库误杀 70 篇正经长文。
+    根因: 公告/声明/报名/工会/培训班 等在正常报道里是普通词汇, 只有在"文档标题"或
+          "独立成行的文档式写法"中才表示低信息密度的公文。
+
+    新判定(config.quality_rules):
+      a) low_value_title_only : 关键词仅匹配【标题】—— 标题是公文名才是公文
+      b) low_value_context_re : 正文只认"文档式"写法(独立成行的 公告/声明/通知/简报,
+                                号召式 报名方式/报名截止, 气象式 发布预警)
+    未配置 low_value_title_only 时回退旧逻辑, 保证向后兼容。
+    """
+    title = article.get("title", "") or ""
+    head = (article.get("text", "") or "")[:300]
+
+    title_only = rules.get("low_value_title_only")
+    if not title_only:  # 旧配置 -> 回退
+        extra = rules.get("internal_activity", [])
+        return any(k in title or k in head for k in LOW_VALUE_KEYWORDS + extra)
+
+    # a) 标题级: 标题本身就是公文/活动名
+    for w in title_only:
+        if w in title:
+            return True
+    # b) 正文级: 只认文档式写法, 不再裸匹配普通词汇
+    for pat in rules.get("low_value_context_re", []):
+        if re.search(pat, head):
+            return True
+    return False
 
 
 def is_event_recruit(article: dict, rules: dict):
