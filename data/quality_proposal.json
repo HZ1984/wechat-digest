@@ -1,65 +1,113 @@
 {
- "generated_at": "2026-09-05T21:02:32+08:00",
- "note": "本文件为质量规则自迭代的【提案】，不会自动应用。确认后由我修改 digest_cloud.py 主规则并跑回归。",
+ "generated_at": "2026-09-06T21:02:12+08:00",
+ "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
+ "regression": {
+  "status": "pass",
+  "total": 17,
+  "passed": 17,
+  "failed": [],
+  "pass_rate": 100.0
+ },
  "suspected_false_negatives": [
   {
    "title": "【国际快讯】本田、日产拟联合开发车载汽车软件；丰田7月全球销量同比下降5.3%；大众管理层或绕开监事会强行推行转型计划",
    "source": "盖世汽车每日速递",
+   "pool": "微信",
    "length": 3090,
-   "score": 100.0,
-   "reasons": [
-    "正文 3090 字",
-    "命中兴趣: ai、人工智能、投资",
-    "高权重主题「人工智能」+12(命中: 人工智能、AI、芯片)"
-   ]
-  },
-  {
-   "title": "公考培训行业的日子越来越难",
-   "source": "界面新闻",
-   "length": 3370,
    "score": 88.0,
    "reasons": [
-    "正文 3370 字",
-    "命中兴趣: ai、人工智能、商业",
-    "高权重主题「人工智能」+12(命中: 人工智能、AI)"
-   ]
-  },
-  {
-   "title": "比亚迪滴滴合资公司被转卖，信濠光电9.5亿接手",
-   "source": "经济观察报",
-   "length": 2528,
-   "score": 82.0,
-   "reasons": [
-    "正文 2528 字",
-    "命中兴趣: 科技、商业、政策",
-    "高权重主题「新能源汽车」+12(命中: 比亚迪、新能源汽车、电动车)"
-   ]
-  },
-  {
-   "title": "被折断舌头的标本是仅存 300 条的“蛇中大熊猫”",
-   "source": "国家地理中文网",
-   "length": 3143,
-   "score": 62.0,
-   "reasons": [
-    "正文 3143 字",
-    "命中兴趣: 科技"
+    "正文 3090 字",
+    "时效-12(6天前, 偏旧)",
+    "命中兴趣: ai、人工智能、投资"
    ]
   },
   {
    "title": "Nature Portfolio即将截止的特刊征稿八月辑 | 寻找更匹配您的投稿方向",
    "source": "自然系列",
+   "pool": "微信",
    "length": 3712,
-   "score": 58.0,
+   "score": 46.0,
    "reasons": [
-    "正文 3712 字"
+    "正文 3712 字",
+    "时效-12(6天前, 偏旧)"
    ]
   }
  ],
- "feedback_summary": {
-  "keys": [
-   "说明",
-   "cases"
-  ],
-  "total": 10
- }
+ "suspected_false_positives": [
+  {
+   "title": "早报 | 库克致全员信告别15年掌舵岁月；梅西宣布从阿根廷国家队退役；“龙虾”史上最大更新来了；华为上半年营收4678亿",
+   "source": "虎嗅APP",
+   "pool": "微信",
+   "score": 96.0,
+   "signals": {
+    "合集栏目稿": [
+     "命中「早报」",
+     "命中「早报 |」"
+    ]
+   },
+   "signal_count": 1,
+   "strong": true
+  },
+  {
+   "title": "早报 | 建行已开放房贷延期申请；官方通报敌敌畏消杀问题；三大航司上半年合计亏超80亿元；分析师称厄尔尼诺或致大宗商品涨",
+   "source": "虎嗅APP",
+   "pool": "微信",
+   "score": 90.0,
+   "signals": {
+    "合集栏目稿": [
+     "命中「早报」",
+     "命中「早报 |」"
+    ]
+   },
+   "signal_count": 1,
+   "strong": true
+  },
+  {
+   "title": "Edge AI Daily 早报（9月6日）",
+   "source": "钛媒体",
+   "pool": "官网",
+   "score": 86.0,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  },
+  {
+   "title": "湾区之约：凝聚媒体共识，共筑亚太繁荣之路",
+   "source": "21世纪经济报道",
+   "pool": "官网",
+   "score": 63.0,
+   "signals": {
+    "宣传通稿腔": [
+     "高度评价"
+    ],
+    "空泛无数据": [
+     "正文761字仅2个数字"
+    ]
+   },
+   "signal_count": 2,
+   "strong": false
+  },
+  {
+   "title": "路透早报：8月31日",
+   "source": "路透财经早报",
+   "pool": "微信",
+   "score": 56.0,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  }
+ ],
+ "quality_priority_warnings": [],
+ "research_topics": [
+  "低信息密度内容 误杀 判定 阈值 内容策展",
+  "企业宣传稿 通稿 自动识别 NLP 特征",
+  "内容信息密度 评估 指标 信息熵",
+  "newsletter 选题 单篇深度 vs 资讯合集 精读摘要"
+ ],
+ "pool_sizes": {
+  "微信": 304,
+  "RSS": 568,
+  "官网": 204
+ },
+ "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
