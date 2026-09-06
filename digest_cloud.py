@@ -92,6 +92,52 @@ def is_low_value(article: dict, rules: dict) -> bool:
     return any(k in title or k in head for k in LOW_VALUE_KEYWORDS + extra)
 
 
+def is_event_recruit(article: dict, rules: dict):
+    """活动招募/征集/会议宣发帖 → 返回 (bool, reason)。
+
+    这类文章(如《高能团队...优秀实践征集进行中》《主题揭晓｜HBRC年会》)有完整正文、
+    无广告标记, 常规营销/低价值规则都拦不住, 但本质是号召读者报名参会, 无知识增量。
+
+    双层判定, 兼顾召回与误杀:
+      第1层 强CTA: 正文出现报名/票务类号召语(报名截止/扫码抢票/获取报名表...) → 直接判定
+                   这些信号在正常新闻报道中几乎不出现, 误杀风险极低
+      第2层 组合信号: 标题含活动词(征集/招募/年会/论坛...) 且 正文前2000字出现
+                     >= event_body_min 个不同活动词 → 判定
+                     (单靠标题会误杀"人大代表征集意见"等正常报道, 故须组合)
+    """
+    title = article.get("title", "")
+    text = article.get("text", "") or ""
+    head = text[:2000]
+
+    for pat in rules.get("event_cta_re", []):
+        if re.search(pat, text):
+            return True, f"活动招募CTA(命中「{pat}」)"
+
+    t_hit = [w for w in rules.get("event_title_words", []) if w in title]
+    b_hit = {w for w in rules.get("event_body_words", []) if w in head}
+    need = rules.get("event_body_min", 3)
+    if t_hit and len(b_hit) >= need:
+        return True, (f"活动征集帖(标题「{t_hit[0]}」+ 正文{len(b_hit)}个活动词"
+                      f": {'、'.join(sorted(b_hit)[:3])})")
+    return False, ""
+
+
+# 时效性加分表(键=距今天数, 值=分数增量); 超过最大键的按最旧档处理
+DEFAULT_FRESHNESS_BONUS = {0: 20, 1: 14, 2: 8, 3: 3, 4: -5, 7: -12}
+
+
+def _article_age_days(article: dict):
+    """文章发布时间距今几天; 无法解析返回 None(此时不加不扣)"""
+    pub = article.get("pub_date") or ""
+    if not pub:
+        return None
+    try:
+        d = datetime.strptime(str(pub)[:10], "%Y-%m-%d").date()
+    except Exception:
+        return None
+    return (datetime.now().date() - d).days
+
+
 def interest_hit(kw: str, text_lower: str):
     """兴趣匹配: 纯英文/数字关键词要求词边界, 避免 'ai' 误匹配 'said' 等"""
     if re.fullmatch(r"[a-z0-9]+", kw.lower()):
@@ -392,6 +438,27 @@ def heuristic_score(article: dict, cfg: dict) -> dict:
     elif chars < cfg.get("min_chars", 1500):
         score -= 15; reasons.append(f"正文仅 {chars} 字，偏短")
 
+    # 时效性加权(2026-09-06 新增)
+    # 背景: 此前评分完全没有时效项, 而微信池文章正文动辄 5000~17000 字可拿满 +20 分,
+    #   新增的 RSS 池(仅摘要)与官网直抓池(正文截断 1600 字)天然低 14~35 分。
+    #   结果: 8 月底的微信老文以 100 分封顶长期霸榜, 9 月新文最高仅 86 分, 日报看不到新鲜内容。
+    # 修复: 按"距今几天"给时效分, 当天新文大幅加分、陈旧文章扣分, 拉开足以翻盘的差距。
+    age = _article_age_days(article)
+    if age is not None:
+        tbl = cfg.get("freshness_bonus") or DEFAULT_FRESHNESS_BONUS
+        tbl = {int(k): v for k, v in tbl.items()}
+        oldest = max(tbl) if tbl else 7
+        delta = tbl.get(age if age in tbl else min(age, oldest),
+                        tbl.get(oldest, 0) if tbl else 0)
+        # 超过表内最大天数的, 一律按最旧档处理
+        if age > oldest and oldest in tbl:
+            delta = tbl[oldest]
+        score += delta
+        if delta > 0:
+            reasons.append(f"时效+{delta}({'今天' if age == 0 else f'{age}天前'})")
+        elif delta < 0:
+            reasons.append(f"时效{delta}({age}天前, 偏旧)")
+
     h_count = sum(count_tags(content_html, f"h{i}") for i in range(2, 5))
     code_blocks = len(re.findall(r"<pre[\s>]|<code[\s>]", content_html, flags=re.I))
     tables = count_tags(content_html, "table")
@@ -669,6 +736,7 @@ def main():
     lookback = now - timedelta(days=cfg.get("lookback_days", 3) - 1)
     lookback = lookback.replace(hour=0, minute=0, second=0, microsecond=0)
     candidates, stale_note, skipped_low, skipped_black, in_window = [], [], 0, 0, 0
+    skipped_event = 0
     for a in all_articles:
         try:
             pub = datetime.strptime(a["pub_date"][:10], "%Y-%m-%d")
@@ -688,9 +756,16 @@ def main():
         if is_low_value(a, quality_rules):   # 低信息密度内容(公告/日历/预警/内部活动等)直接剔除
             skipped_low += 1
             continue
+        is_ev, ev_reason = is_event_recruit(a, quality_rules)  # 活动招募/征集/会议宣发帖
+        if is_ev:
+            skipped_event += 1
+            if skipped_event <= 8:
+                print(f"    [活动帖] {ev_reason} | {a['title'][:40]}")
+            continue
         candidates.append(a)
     print(f"[+] 回溯 {cfg.get('lookback_days', 3)} 天且未推送过: {len(candidates)} 篇"
-          f" (窗口内共 {in_window} 篇, 另有 {skipped_low} 篇低信息密度 + {skipped_black} 篇黑名单来源已剔除)")
+          f" (窗口内共 {in_window} 篇, 另有 {skipped_low} 篇低信息密度 + {skipped_black} 篇黑名单来源"
+          f" + {skipped_event} 篇活动招募帖已剔除)")
 
     # 无新文章 / 异常: 区分三类情况, 每类发 2~3 封报错邮件(同日不重复), 让用户一眼可见
     # db_stats 由 sync_data 带来: recent_total=近N天总文章数, recent_with_content=其中有正文的篇数
