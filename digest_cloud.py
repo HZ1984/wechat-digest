@@ -122,6 +122,27 @@ def is_event_recruit(article: dict, rules: dict):
     return False, ""
 
 
+def is_corp_report(article: dict, rules: dict):
+    """企业形象报告稿(ESG/社会责任/可持续发展报告发布) → (bool, reason)。
+
+    这类稿子有完整正文、无广告标记, 但通篇是企业自我表彰, 无知识增量
+    (如《数智赋能 绿润湾区——南方电网...社会责任实践报告发布》)。
+
+    正则刻意收窄到"ESG/社会责任/可持续发展/公益"等定性词 + 报告/白皮书,
+    实测两种更宽的写法都会误杀, 已排除:
+      - 泛化"(报告|白皮书)发布" → 误杀《数智融合, 驱动治理创新》(中国发展改革)
+      - 荣誉类"(五星|标杆|示范)...(企业|案例)" → 误杀《中国制造, 未来五年这么做!》
+        《2026数博会在贵阳开幕!》等正常新闻
+    """
+    title = article.get("title", "")
+    head = (article.get("text", "") or "")[:800]
+    for pat in rules.get("corp_report_re", []):
+        m = re.search(pat, title) or re.search(pat, head)
+        if m:
+            return True, f"企业形象报告稿(命中「{m.group(0)[:24]}」)"
+    return False, ""
+
+
 # 时效性加分表(键=距今天数, 值=分数增量); 超过最大键的按最旧档处理
 DEFAULT_FRESHNESS_BONUS = {0: 20, 1: 14, 2: 8, 3: 3, 4: -5, 7: -12}
 
@@ -737,6 +758,7 @@ def main():
     lookback = lookback.replace(hour=0, minute=0, second=0, microsecond=0)
     candidates, stale_note, skipped_low, skipped_black, in_window = [], [], 0, 0, 0
     skipped_event = 0
+    skipped_corp = 0
     for a in all_articles:
         try:
             pub = datetime.strptime(a["pub_date"][:10], "%Y-%m-%d")
@@ -762,10 +784,16 @@ def main():
             if skipped_event <= 8:
                 print(f"    [活动帖] {ev_reason} | {a['title'][:40]}")
             continue
+        is_cr, cr_reason = is_corp_report(a, quality_rules)    # 企业形象报告稿(ESG/社会责任)
+        if is_cr:
+            skipped_corp += 1
+            if skipped_corp <= 8:
+                print(f"    [企业报告稿] {cr_reason} | {a['title'][:40]}")
+            continue
         candidates.append(a)
     print(f"[+] 回溯 {cfg.get('lookback_days', 3)} 天且未推送过: {len(candidates)} 篇"
           f" (窗口内共 {in_window} 篇, 另有 {skipped_low} 篇低信息密度 + {skipped_black} 篇黑名单来源"
-          f" + {skipped_event} 篇活动招募帖已剔除)")
+          f" + {skipped_event} 篇活动招募帖 + {skipped_corp} 篇企业报告稿已剔除)")
 
     # 无新文章 / 异常: 区分三类情况, 每类发 2~3 封报错邮件(同日不重复), 让用户一眼可见
     # db_stats 由 sync_data 带来: recent_total=近N天总文章数, recent_with_content=其中有正文的篇数

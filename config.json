@@ -349,7 +349,10 @@
       "门票",
       "注册参加"
     ],
-    "event_body_min": 3
+    "event_body_min": 3,
+    "corp_report_re": [
+      "(社会责任|ESG|esg|CSR|csr|可持续发展|公益|环境.{0,3}社会)[^。]{0,12}(报告|白皮书)"
+    ]
   },
   "rss_soft_filter": {
     "_comment": "RSS 软文/广告/消费诱导文前置过滤(fetch_rss.py 入库前拦掉),关键原则:必须 (消费品对象) AND (诱购模板) 同时命中才杀,避免误伤正经问号标题。",
