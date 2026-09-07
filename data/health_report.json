@@ -1,6 +1,6 @@
 {
- "run_date": "2026-09-06",
- "checked_at": "2026-09-06T21:02:11+08:00",
+ "run_date": "2026-09-07",
+ "checked_at": "2026-09-07T21:03:27+08:00",
  "deferred": false,
  "hours_since_sync": 0.4,
  "issues": [
@@ -9,7 +9,7 @@
  ],
  "actions": [],
  "source_health": {
-  "checked_at": "2026-09-06T20:36:54+08:00",
+  "checked_at": "2026-09-07T20:36:54+08:00",
   "db_ok": true,
   "account_status": 1,
   "account_enabled": 1,
@@ -21,10 +21,10 @@
   "proxy_url": "https://weread.111965.xyz"
  },
  "db_stats": {
-  "recent_total": 378,
-  "recent_with_content": 304,
+  "recent_total": 133,
+  "recent_with_content": 114,
   "latest_publish": "2026-09-01 11:33",
-  "feeds_active": 51,
+  "feeds_active": 31,
   "days": 7
  }
 }
