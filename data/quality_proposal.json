@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-07T21:03:28+08:00",
+ "generated_at": "2026-09-08T21:03:58+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -11,24 +11,10 @@
  "suspected_false_negatives": [],
  "suspected_false_positives": [
   {
-   "title": "早报 | 库克致全员信告别15年掌舵岁月；梅西宣布从阿根廷国家队退役；“龙虾”史上最大更新来了；华为上半年营收4678亿",
-   "source": "虎嗅APP",
-   "pool": "微信",
-   "score": 96.0,
-   "signals": {
-    "合集栏目稿": [
-     "命中「早报」",
-     "命中「早报 |」"
-    ]
-   },
-   "signal_count": 1,
-   "strong": true
-  },
-  {
-   "title": "Edge AI Daily 早报（9月7日）",
+   "title": "Edge AI Daily 早报（9月8日）",
    "source": "钛媒体",
    "pool": "官网",
-   "score": 64.0,
+   "score": 94.0,
    "signals": {},
    "signal_count": 0,
    "strong": true
@@ -36,12 +22,12 @@
  ],
  "quality_priority_warnings": [],
  "research_topics": [
-  "newsletter 选题 单篇深度 vs 资讯合集 精读摘要"
+  "内容质量评分 体系 最佳实践 newsletter curation"
  ],
  "pool_sizes": {
-  "微信": 114,
-  "RSS": 941,
-  "官网": 214
+  "微信": 0,
+  "RSS": 1325,
+  "官网": 205
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
