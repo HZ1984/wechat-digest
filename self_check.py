@@ -1,26 +1,29 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-公众号日报链路 · 定期自查自迭代
-===============================
-每日独立运行(不依赖 digest 是否成功), 巡检全链路健康度并分级处置:
+公众号日报链路 · 定期自查自迭代（WeRSS 自托管架构版）
+========================================================
+2026-09-09 重构: 原 WeWe RSS(走 weread.111965.xyz 代理)已弃用, 改为本地自托管
+WeRSS(rachelos/we-mp-rss, 端口 8001), 微信源池改为 data/werss_articles.json
+(由本机 WeRSS-Now 计划任务每 3h 推送)。本脚本随之改为"多池数据驱动"巡检:
 
-  1. 数据源账号 : WeWe RSS 读书转发账号状态(source_health.account_enabled)
-  2. 取文代理   : weread 取文代理可达性(source_health.proxy_ok) —— 502 时标题能抓、正文抓不到
-  3. 抓取新鲜度 : 订阅源同步停滞(feeds_stale) / 本地同步过期(exported_at 过旧)
-  4. 内容供给   : db_stats 正文占比(content_broken 判定)
-  5. 云端跑批   : digest 今天是否真的发出了邮件(防"跑了却没发"的静默失败)
-  6. 质量自迭代 : 扫描近期被过滤的高分候选, 产出"规则修正提案"(仅提案, 不自动改主规则)
+  数据源(三池, 均在仓库 data/ 下):
+    1. werss  WeRSS 自托管(微信)  —— 本机每 3h 推送, 机器关机则停滞
+    2. rss    RSS 媒体源           —— GitHub Actions 每 2h 云端抓取
+    3. web    官网直抓             —— GitHub Actions 云端抓取
 
-三类动作(对应"能发现问题"与"能解决问题"的边界):
-  A. 自愈(自动): digest 今天没跑 -> 触发 workflow_dispatch 重跑
-  B. 升级(大声告警, 2~3 封主题各异, 同日不重复): 账号失效/代理挂/正文中断/同步过期/静默失败
-                 -> 给出根因 + 具体操作, 但"需外部恢复/需你操作"的故障只告警不擅自改
-  C. 质量自迭代(保守提案): 产出 quality_proposal.json, 待你确认后我才改 digest_cloud.py 的规则
-                 -> 绝不静默放宽门槛, 以免违背"宁缺毋滥"
+  巡检项(分级处置):
+    A. WeRSS 微信池: 数据缺失 / 源数偏少 / 正文抓取中断 / 本地同步过期
+    B. RSS / Web 池: 数据缺失 / 云端同步停滞(>24h 警告, >48h 紧急)
+    C. 云端跑批    : digest 今天是否真发出(防"跑了却没发"的静默失败) -> 自动补触发
+    D. 质量自迭代  : 扫描近期被过滤的高分候选, 产出"规则修正提案"(仅提案, 不自动改主规则)
 
-依赖: 仅 Python 标准库; 复用 digest_cloud 的 send_mail / send_anomaly_burst
-环境变量:
+  自愈(自动): digest 今天没跑 -> 触发 workflow_dispatch 重跑
+  升级(大声告警, 同日不重复): 微信池缺失/正文中断/静默失败/云端池停滞
+  质量自迭代(保守提案): 产出 quality_proposal.json, 待确认后才改 digest_cloud.py 主规则
+
+依赖: 仅 Python 标准库; 复用 digest_cloud 的 send_mail / send_anomaly_burst / 评分函数。
+环境变量(本地 dry-run 或 Actions 注入):
   GITHUB_TOKEN       (Actions 自动注入, 用于重触发 digest / 读 workflow runs)
   GITHUB_REPOSITORY  (Actions 自动注入, owner/repo)
   SMTP_USER/SMTP_PASS/TO_EMAIL  (同 digest, 用于发告警)
@@ -42,6 +45,22 @@ import digest_cloud  # 复用 send_mail / send_anomaly_burst / 评分函数
 
 REPO = os.environ.get("GITHUB_REPOSITORY", "HZ1984/wechat-digest")
 TOKEN = os.environ.get("GITHUB_TOKEN", "")
+
+# 三池定义: (key, 文件路径, 中文标签, 来源)
+# 来源 local  = 本机计划任务推送, 依赖用户开机; cloud = GitHub Actions 云端, 不依赖本机
+POOLS = [
+    ("werss", "data/werss_articles.json", "WeRSS 自托管(微信)", "local"),
+    ("rss", "data/rss_articles.json", "RSS 媒体源", "cloud"),
+    ("web", "data/web_articles.json", "官网直抓", "cloud"),
+]
+
+# 阈值(小时)
+WERSS_STALE_H = 12          # 本机微信池超过此值视为过期(机器未开机时顺延)
+WERSS_DEFER_H = 24          # 超过此值视为"本机可能未开机", 抑制微信池新鲜度误报
+CLOUD_STALE_H = 24          # 云端池超过此值警告
+CLOUD_CRIT_H = 48           # 云端池超过此值紧急
+WERSS_MIN_SOURCES = 50      # 微信源正常约 62, 低于此值告警
+WERSS_CONTENT_RATIO = 0.7   # 微信池正文占比低于此值视为正文中断
 
 
 # ---------------------------------------------------------------- GitHub API 辅助
@@ -91,98 +110,181 @@ def dispatch_digest(token: str) -> bool:
         return False
 
 
-# ---------------------------------------------------------------- 健康度分类
-def classify(payload: dict, sent: dict, run_date: str, now: datetime, digest_run,
-             deferred: bool = False, gap_h: float = 0.0) -> tuple:
-    """返回 (issues, auto_actions)。issues 元素: dict(code, severity, title, detail, fix, subject)。
-
-    deferred / gap_h: 由 main 根据 articles_recent.json 的 exported_at 计算。
-      - gap_h <= 24  : 当天有本地同步, 全量检查。
-      - 24 < gap_h <= 48 : 当天本机未开机/未同步(顺延日), 抑制"新鲜度类"误报, 次日再判。
-      - gap_h > 48   : 连续多日未同步, 在抑制误报基础上, 升级一条温和提醒(可能是同步链路真坏了)。
-    """
-    sh = payload.get("source_health", {})
-    db = payload.get("db_stats", {})
-    exported_at = payload.get("exported_at", "unknown")
-    issues, actions = [], []
-
-    # --- 1) 读书账号失效 ---
-    acct_enabled = sh.get("account_enabled", 0)
-    if sh.get("db_ok") and acct_enabled == 0:
-        issues.append({
-            "code": "account", "severity": "critical",
-            "title": "读书转发账号失效",
-            "detail": f"accounts 表中可用账号数 = {acct_enabled}/{sh.get('account_total')}（status=1 才可用）。"
-                      f"WeWe RSS 将停止抓取新文章，后续日报会逐渐变空。",
-            "fix": "请在本地浏览器打开 http://localhost:4000 重新扫码授权微信读书转发账号，账号变 status=1 后抓取自动恢复。"
-                   f"（这是账号授权问题，代码无法自动修复，需要你操作一次。）",
-            "subject": "【紧急·账号失效】微信读书转发账号不可用",
-        })
-
-    # --- 2) 取文代理不可用 ---
-    if sh.get("proxy_ok") is False:
-        issues.append({
-            "code": "proxy", "severity": "critical",
-            "title": "取文代理不可用",
-            "detail": f"weread 取文代理 {sh.get('proxy_url')} 当前不可达（实测非 200/超时）。"
-                      f"文章标题能抓到、正文却抓不下来 → 正文为空 → 日报无文可精选。",
-            "fix": "这是外部服务故障，代码无法修复。① 通常数小时~1 天内自行恢复；"
-                   f"② 若长期不愈，可在 wewe-rss-check/apps/server/.env.local 把 PLATFORM_URL 换成其它 weread 转发服务后重启 WeWe RSS"
-                   f"（我会等你确认再改，不擅自动你的运行配置）。",
-            "subject": "【紧急·代理故障】weread 取文代理不可用(502)",
-        })
-
-    # --- 3) 正文抓取中断 (db_stats 正文占比过低) ---
-    r_total = db.get("recent_total")
-    r_wc = db.get("recent_with_content")
-    content_broken = (isinstance(r_total, int) and isinstance(r_wc, int)
-                      and r_total >= 5 and r_wc <= max(2, int(r_total * 0.1)))
-    if content_broken:
-        issues.append({
-            "code": "content_broken", "severity": "critical",
-            "title": "正文抓取中断",
-            "detail": f"DB 近 {db.get('days')} 天有 {r_total} 篇文，但仅 {r_wc} 篇带正文。",
-            "fix": "与取文代理故障同源。代理恢复后新文自动带正文，供给自愈；无需你操作，等恢复即可。",
-            "subject": "【紧急·正文中断】近N天绝大多数文章无正文",
-        })
-
-    # --- 4) 抓取/同步新鲜度 ---
-    if sh.get("db_ok") and isinstance(sh.get("feeds_stale"), int) and sh["feeds_total"]:
-        if sh["feeds_stale"] >= max(1, int(sh["feeds_total"] * 0.8)) and sh.get("latest_sync"):
+# ---------------------------------------------------------------- 数据解析辅助
+def parse_exported(s):
+    """解析各池 exported_at 字段(格式不统一: ISO+时区 / 'YYYY-MM-DD HH:MM'), 统一返回东八区 datetime。"""
+    if not s or s == "unknown":
+        return None
+    s = str(s).strip()
+    dt = None
+    try:
+        dt = datetime.fromisoformat(s)  # 处理 ISO(含 +08:00 / Z)
+    except Exception:
+        pass
+    if dt is None:
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%dT%H:%M:%S"):
             try:
-                last = datetime.strptime(sh["latest_sync"], "%Y-%m-%d %H:%M").replace(tzinfo=CST)
-                hrs = (now - last).total_seconds() / 3600
-                if hrs > 24:
-                    issues.append({
-                        "code": "stale_feeds", "severity": "warning",
-                        "title": "订阅源同步停滞",
-                        "detail": f"{sh['feeds_stale']}/{sh['feeds_total']} 个订阅源超过 12h 未同步，"
-                                  f"最近一次同步在 {sh['latest_sync']}（约 {hrs:.0f} 小时前）。",
-                        "fix": "通常是取文代理故障的连带现象（代理挂→抓不到→sync_time 不前进）。代理恢复后自动好转；"
-                               f"若代理正常却仍停滞，检查 WeWe RSS 服务是否在跑（localhost:4000）。",
-                        "subject": "【注意·抓取停滞】多数订阅源长时间未同步",
-                    })
+                dt = datetime.strptime(s, fmt)
+                break
             except Exception:
-                pass
+                continue
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=CST)
+    return dt
 
-    # --- 5) 本地同步过期 ---
-    if exported_at != "unknown":
-        try:
-            exp_dt = datetime.fromisoformat(exported_at)
-            h = (now - exp_dt).total_seconds() / 3600
-            if h > 12:
-                issues.append({
-                    "code": "sync_stale", "severity": "warning",
-                    "title": "本地同步过期",
-                    "detail": f"articles_recent.json 最后更新于 {exported_at}（北京时间），已约 {h:.0f} 小时未同步。",
-                    "fix": "本机需至少每 12h 开机一次，让「WeChatDigest-Sync」计划任务（每 2h）能跑。"
-                           f"若服务未起，localhost:4000 不可达时同步会跳过——手动启动 WeWe RSS 即可。",
-                    "subject": "【注意·同步过期】本地数据已超过12h未更新",
-                })
-        except Exception:
-            pass
 
-    # --- 6) 云端跑批: digest 今天是否真发出 ---
+def _has_content(a: dict) -> bool:
+    t = a.get("content_html") or a.get("text") or ""
+    return len((t or "").strip()) >= 200
+
+
+def _latest_pub_dt(arts: list) -> datetime:
+    """取池内最新发布时间(publish_time 多为 unix 秒)。返回 CST datetime 或 None。"""
+    best = None
+    for a in arts:
+        p = a.get("publish_time") or a.get("pub_date")
+        if isinstance(p, (int, float)) and p > 0:
+            try:
+                dt = datetime.fromtimestamp(p, tz=CST)
+            except Exception:
+                continue
+        elif isinstance(p, str):
+            dt = parse_exported(p)
+        else:
+            continue
+        if dt and (best is None or dt > best):
+            best = dt
+    return best
+
+
+def pool_stats(rel: str, now: datetime) -> dict:
+    """读取单个池文件, 计算健康快照。文件缺失/损坏时 present=False。"""
+    path = BASE_DIR / rel
+    if not path.exists():
+        return {"present": False, "rel": rel, "exported_at": "missing",
+                "exported_dt": None, "age_h": 0.0, "count": 0,
+                "with_content": 0, "content_ratio": 0.0,
+                "latest_pub_dt": None, "latest_pub_str": "—", "n_sources": 0}
+    try:
+        d = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as e:
+        print(f"[warn] 读取 {rel} 失败: {e}")
+        return {"present": False, "rel": rel, "exported_at": f"corrupt({e})",
+                "exported_dt": None, "age_h": 0.0, "count": 0,
+                "with_content": 0, "content_ratio": 0.0,
+                "latest_pub_dt": None, "latest_pub_str": "—", "n_sources": 0}
+    arts = d.get("articles") if isinstance(d, dict) else None
+    if not isinstance(arts, list):
+        arts = []
+    exp = parse_exported(d.get("exported_at")) if isinstance(d, dict) else None
+    age_h = (now - exp).total_seconds() / 3600 if exp else 0.0
+    wc = sum(1 for a in arts if _has_content(a))
+    lp = _latest_pub_dt(arts)
+    return {
+        "present": True,
+        "rel": rel,
+        "exported_at": d.get("exported_at", "unknown") if isinstance(d, dict) else "unknown",
+        "exported_dt": exp,
+        "age_h": round(age_h, 1),
+        "count": len(arts),
+        "with_content": wc,
+        "content_ratio": (wc / len(arts)) if arts else 0.0,
+        "latest_pub_dt": lp,
+        "latest_pub_str": lp.strftime("%Y-%m-%d %H:%M") if lp else "—",
+        "n_sources": d.get("n_sources", 0) if isinstance(d, dict) else 0,
+    }
+
+
+def compute_pools(now: datetime) -> dict:
+    out = {}
+    for key, rel, label, kind in POOLS:
+        st = pool_stats(rel, now)
+        st["label"] = label
+        st["kind"] = kind
+        out[key] = st
+    return out
+
+
+# ---------------------------------------------------------------- 健康度分类
+def classify(pools: dict, sent: dict, run_date: str, now: datetime, digest_run,
+             deferred: bool = False) -> tuple:
+    """返回 (issues, actions)。issues 元素: dict(code, severity, title, detail, fix, subject)。"""
+    issues, actions = [], []
+    werss = pools.get("werss")
+    rss = pools.get("rss")
+    web = pools.get("web")
+
+    # ===== A. WeRSS 微信池(本地推送, 机器关机会停滞) =====
+    if not (werss and werss["present"]):
+        issues.append({
+            "code": "werss_missing", "severity": "critical",
+            "title": "WeRSS 微信池数据缺失",
+            "detail": "云端未找到 data/werss_articles.json, 或本地从未推送。微信源是日报主干, 缺失将导致日报几乎无文可精选。",
+            "fix": "在本地 werss 目录运行 powershell 执行 run_werss_sync.ps1 (或等本机 WeRSS-Now 计划任务), "
+                   "把 werss_articles.json 推送到 GitHub。",
+            "subject": "【紧急·数据缺失】WeRSS 微信池未推送",
+        })
+    else:
+        # 源数偏少
+        ns = werss.get("n_sources") or 0
+        if ns and ns < WERSS_MIN_SOURCES:
+            issues.append({
+                "code": "werss_sources", "severity": "warning",
+                "title": "WeRSS 微信源数量偏少",
+                "detail": f"WeRSS 当前 {ns} 个源(正常约 62)。可能是 manage_feeds 误删或同步不全。",
+                "fix": "在本地 werss 目录运行 python manage_feeds.py list 核对; 如需恢复用 remove 的逆操作或重新添加。",
+                "subject": "【注意·源数偏少】WeRSS 公众号源少于预期",
+            })
+        # 正文抓取中断
+        if werss["count"] >= 5 and werss["content_ratio"] < WERSS_CONTENT_RATIO:
+            issues.append({
+                "code": "werss_content", "severity": "critical",
+                "title": "WeRSS 微信正文抓取中断",
+                "detail": f"WeRSS 池 {werss['count']} 篇中仅 {werss['with_content']} 篇带正文(占比 {werss['content_ratio']*100:.0f}%)。",
+                "fix": "WeRSS 已设置 gather.content=True。若突然大量无正文, 多为微信读书账号会话失效; "
+                       "在本地浏览器打开 http://localhost:8001 重新登录微信读书账号后, 下次同步自动恢复。",
+                "subject": "【紧急·正文中断】WeRSS 微信文章大量无正文",
+            })
+        # 本地同步过期(机器未开机时顺延)
+        if not deferred and werss["age_h"] > WERSS_STALE_H:
+            issues.append({
+                "code": "werss_stale", "severity": "warning",
+                "title": "WeRSS 本地同步过期",
+                "detail": f"werss_articles.json 最后更新于 {werss['exported_at']}(约 {werss['age_h']:.0f} 小时前)。"
+                          f"本机 WeRSS-Now 计划任务应每 3 小时推送一次。",
+                "fix": "确认本机已开机且 WeRSS-Now 计划任务在运行(任务计划程序里看 NextRun/LastResult)。"
+                       f"若服务没起, 手动运行 run_werss_sync.ps1 拉起。",
+                "subject": "【注意·同步过期】WeRSS 本地数据已超过12h未更新",
+            })
+
+    # ===== B. RSS / Web 云端池(不依赖本机, 应始终新鲜) =====
+    for key in ("rss", "web"):
+        p = pools.get(key)
+        label = next(l for k, _, l, _ in POOLS if k == key)
+        rel = next(r for k, r, _, _ in POOLS if k == key)
+        if not (p and p["present"]):
+            issues.append({
+                "code": f"{key}_missing", "severity": "warning",
+                "title": f"{label}数据缺失",
+                "detail": f"云端未找到 {rel}。该池由 GitHub Actions 云端抓取, 缺失说明对应工作流未运行或推送失败。",
+                "fix": f"到 GitHub Actions 查看对应工作流最近运行是否 success; 必要时手动 Run workflow。",
+                "subject": f"【注意·数据缺失】{label}未生成",
+            })
+            continue
+        if p["age_h"] > CLOUD_STALE_H:
+            sev = "critical" if p["age_h"] > CLOUD_CRIT_H else "warning"
+            issues.append({
+                "code": f"{key}_stale", "severity": sev,
+                "title": f"{label}同步停滞",
+                "detail": f"{rel} 最后更新于 {p['exported_at']}(约 {p['age_h']:.0f} 小时前)。"
+                          f"该池由 GitHub Actions 云端每 2 小时抓取, 长时间不更新说明云端工作流可能失败。",
+                "fix": "到 GitHub Actions 查看 RSS Sync / Web 抓取工作流最近运行是否 success; 必要时手动 Run workflow。",
+                "subject": f"【{'紧急' if sev=='critical' else '注意'}·同步停滞】{label}长时间未更新",
+            })
+
+    # ===== C. 云端跑批: digest 今天是否真发出 =====
     daily_sent = run_date in sent.values()
     anomaly_sent = f"__anomaly__{run_date}" in sent
     digest_ran = daily_sent or anomaly_sent
@@ -192,53 +294,37 @@ def classify(payload: dict, sent: dict, run_date: str, now: datetime, digest_run
             issues.append({
                 "code": "digest_silent", "severity": "critical",
                 "title": "digest 静默失败",
-                "detail": "云端日报今天已成功运行（GitHub Actions 显示 success），却没有发出任何邮件"
-                          "（既无日报、也无异常告警）。属于需要排查的逻辑异常。",
-                "fix": "手动触发一次 workflow_dispatch 看运行日志；重点查 digest_cloud.py 是否在异常分支提前 return "
-                       "而未写 sent_history（会导致静默不发信）。",
+                "detail": "云端日报今天已成功运行(GitHub Actions 显示 success), 却没有发出任何邮件"
+                          "(既无日报、也无异常告警)。属于需要排查的逻辑异常。",
+                "fix": "手动触发一次 workflow_dispatch 看运行日志; 重点查 digest_cloud.py 是否在异常分支提前 return "
+                       "而未写 sent_history(会导致静默不发信)。",
                 "subject": "【紧急·静默失败】digest 跑了却没发邮件",
             })
         else:
-            # 没跑 / 跑失败 -> 尝试自动重触发
             if "--dry-run" in sys.argv:
                 actions.append("（dry-run）跳过自动重触发 digest")
             elif dispatch_digest(TOKEN):
-                actions.append(f"已自动触发 digest 补跑（run 将由 GitHub Actions 异步执行）")
+                actions.append("已自动触发 digest 补跑(run 将由 GitHub Actions 异步执行)")
             else:
                 issues.append({
                     "code": "digest_not_run", "severity": "critical",
                     "title": "digest 未运行且无法自动重触发",
-                    "detail": "今天 08:00-08:30 的定时跑批未产生任何记录（未运行或运行失败），且本环境无 GITHUB_TOKEN 无法自动重触发。",
-                    "fix": "到 GitHub Actions 手动 Run workflow「Daily Digest」；检查仓库 Actions 配额/权限。",
+                    "detail": "今天 08:00-08:30 的定时跑批未产生任何记录(未运行或运行失败), 且本环境无 GITHUB_TOKEN 无法自动重触发。",
+                    "fix": "到 GitHub Actions 手动 Run workflow「Daily Digest」; 检查仓库 Actions 配额/权限。",
                     "subject": "【紧急·未跑批】日报定时任务今天没运行",
                 })
 
-    # ---- 顺延逻辑: 当天本机未开机/未同步(gap_h>24)时, 抑制"新鲜度类"误报 ----
-    # 这些检查依赖"今天有新鲜同步", 电脑没开时数据必然是旧的, 必然误报, 故顺延到次日再判。
+    # ===== 顺延逻辑: 本机未开机(werss 距上次同步>24h)时, 抑制"微信池新鲜度"误报 =====
     if deferred:
-        suppress = {"sync_stale", "stale_feeds", "digest_silent"}
-        issues = [i for i in issues if i["code"] not in suppress]
-        # 连续 2 天以上未同步: 可能不只是"没开机", 而是 WeChatDigest-Sync/WeWe RSS 真异常, 升一级温和提醒
-        if gap_h > 48:
-            issues.append({
-                "code": "off_multi_days", "severity": "warning",
-                "title": "本地连续多日未同步",
-                "detail": f"articles_recent.json 最后同步于 {exported_at}(北京时间), 距今约 {gap_h:.0f} 小时。"
-                          f"若你只是这几天没开电脑属正常; 但若每天都开却仍多日无同步, 说明同步链路可能真出问题了。",
-                "fix": "确认本机已开机并联网。若已开机仍无同步, 检查「WeChatDigest-Sync」计划任务是否在跑、"
-                       f"localhost:4000 是否可达、以及 WeWe RSS 取文代理是否可用。",
-                "subject": "【注意·多日未同步】本地数据已超过2天未更新",
-            })
+        issues = [i for i in issues if i["code"] != "werss_stale"]
 
     return issues, actions
 
 
 # ---------------------------------------------------------------- 质量自迭代(提案, 不自动改)
-def quality_iterate(payload: dict, cfg: dict) -> dict:
+def quality_iterate(pools: dict, cfg: dict) -> dict:
     """委托给 quality_iteration 模块(三池扫描 + 回归 + 双向扫描 + 检索词生成)。
-
-    2026-09-06 升级: 原实现只扫微信池、只找"误杀", 漏掉 RSS/官网直抓两个新池,
-    且无法发现"漏网", 更不能防止规则退化。新模块补齐这四件事。
+    2026-09-09 起微信池已改为 werss_articles.json(见 quality_iteration.POOLS)。
     """
     import quality_iteration as QI
     return QI.run(BASE_DIR, cfg)
@@ -267,7 +353,6 @@ def _legacy_quality_iterate(payload: dict, cfg: dict) -> dict:
             continue
         length = len(a.get("clean_text") or raw)
         is_marketing = ev.get("flags", {}).get("marketing")
-        # 疑似误杀: 篇幅充足、非营销, 却被判低信息密度
         if length >= 2500 and not is_marketing:
             candidates.append({
                 "title": a.get("title", "")[:60],
@@ -279,7 +364,6 @@ def _legacy_quality_iterate(payload: dict, cfg: dict) -> dict:
     candidates.sort(key=lambda x: x["score"], reverse=True)
     candidates = candidates[:8]
 
-    # 历史反馈摘要
     fb_summary = {}
     fb_path = BASE_DIR / "data" / "quality_feedback.json"
     if fb_path.exists():
@@ -338,7 +422,7 @@ def quality_section(proposal: dict) -> str:
             + "".join(lines) + "</ul>")
 
 
-def build_body(issues: list, sh: dict, db: dict, exported_at: str, proposal: dict = None) -> str:
+def build_body(issues: list, pools: dict, proposal: dict = None) -> str:
     sev_cn = {"critical": "🔴 紧急", "warning": "🟡 注意"}
     rows = []
     for i in issues:
@@ -347,17 +431,20 @@ def build_body(issues: list, sh: dict, db: dict, exported_at: str, proposal: dic
             f"<p>{i['detail']}</p>"
             f"<p><b>处理建议：</b>{i['fix']}</p>"
         )
-    health_lines = [
-        f"读书账号可用数: {sh.get('account_enabled')}/{sh.get('account_total')}",
-        f"取文代理可达: {'是' if sh.get('proxy_ok') else '否'} ({sh.get('proxy_url')})",
-        f"订阅源同步停滞: {sh.get('feeds_stale')}/{sh.get('feeds_total')} (最近 {sh.get('latest_sync')})",
-        f"本地同步时间: {exported_at}",
-        f"DB 近{db.get('days')}天: {db.get('recent_total')} 篇, 仅 {db.get('recent_with_content')} 篇有正文",
-    ]
+    health_lines = []
+    for key, _, label, _ in POOLS:
+        p = pools.get(key, {})
+        if p.get("present"):
+            health_lines.append(
+                f"{label}: {p['count']} 篇 / {p['n_sources']} 源, "
+                f"正文 {p['with_content']} 篇, 更新于 {p['exported_at']} (约 {p['age_h']:.0f}h 前), "
+                f"最新发布 {p['latest_pub_str']}")
+        else:
+            health_lines.append(f"{label}: <b>缺失/损坏</b> ({p.get('exported_at')})")
     return (
         f"<p><b>公众号日报链路 · 每日自查发现 {len(issues)} 项需关注</b></p>"
         + "".join(rows)
-        + "<hr><p><b>当前链路快照：</b></p><ul>"
+        + "<hr><p><b>当前三池快照：</b></p><ul>"
         + "".join(f"<li>{l}</li>" for l in health_lines)
         + "</ul><p style='color:#888'>本邮件由 self_check 自动发出；自愈项已自动处理，需你操作的项见上方建议。</p>"
     )
@@ -368,56 +455,43 @@ def main():
     cfg = json.loads((BASE_DIR / "config.json").read_text(encoding="utf-8"))
     now = datetime.now(CST)
     run_date = now.strftime("%Y-%m-%d")
-    print(f"== 链路自查自迭代 · {run_date} (北京时间) ==")
+    print(f"== 链路自查自迭代(WeRSS 架构) · {run_date} (北京时间) ==")
 
-    # 数据: articles_recent.json(微信池)由本地 sync_data 维护, 云端可能暂缺。
-    # 缺失/损坏时不崩溃 —— 跳过健康巡检, 仍跑质量自迭代并产出提案, 保证每日自查稳定。
-    articles_path = BASE_DIR / "data" / "articles_recent.json"
-    if articles_path.exists():
-        try:
-            payload = json.loads(articles_path.read_text(encoding="utf-8"))
-        except Exception as e:
-            print(f"[warn] 读取 articles_recent.json 失败: {e}, 降级跳过健康巡检, 仅跑质量自迭代")
-            payload = {}
-    else:
-        print("[warn] articles_recent.json 不存在(本地未同步/云端暂缺), 降级跳过健康巡检, 仅跑质量自迭代")
-        payload = {}
+    # 三池健康快照(任一缺失/损坏都不崩溃, 相应项单独告警)
+    pools = compute_pools(now)
+    for key, _, label, _ in POOLS:
+        p = pools.get(key, {})
+        print(f"  [{label}] present={p.get('present')} count={p.get('count')} "
+              f"src={p.get('n_sources')} age_h={p.get('age_h')} "
+              f"content={p.get('with_content')}/{p.get('count')}")
+
     hist_path = BASE_DIR / "data" / "sent_history.json"
     sent = json.loads(hist_path.read_text(encoding="utf-8")) if hist_path.exists() else {}
-    sh = payload.get("source_health", {})
-    db = payload.get("db_stats", {})
 
-    # 计算"距上次本地同步多久" -> 判断今天本机是否开过机/同步过
-    exported_at = payload.get("exported_at", "unknown")
-    exp_dt = None
-    if exported_at != "unknown":
-        try:
-            exp_dt = datetime.fromisoformat(exported_at)
-        except Exception:
-            exp_dt = None
-    gap_h = (now - exp_dt).total_seconds() / 3600 if exp_dt else 0.0
-    # 当天(截至本次检查)没有本地同步 -> 电脑很可能没开机, 顺延检查, 不误报新鲜度类问题
-    deferred = gap_h > 24
+    # 是否"本机今天未开机/未同步": 以 werss 微信池距上次推送时间判断
+    werss = pools.get("werss")
+    gap_h = werss["age_h"] if (werss and werss["present"]) else 0.0
+    deferred = (werss and werss["present"]) and gap_h > WERSS_DEFER_H
 
     digest_run = get_latest_digest_run_today(run_date, TOKEN)
-    if payload:
-        issues, actions = classify(payload, sent, run_date, now, digest_run, deferred, gap_h)
-    else:
-        # 健康数据不可用, 不做链路巡检(避免误报), 仅保留质量自迭代结论
-        issues, actions = [], []
+    issues, actions = classify(pools, sent, run_date, now, digest_run, deferred)
 
-    # 若 digest 今天已发过异常告警(根因类), 避免与它的告警重复, 去掉 proxy/content 类
+    # 若 digest 今天已发过异常告警(根因类), 避免与它的告警重复
     if f"__anomaly__{run_date}" in sent:
-        issues = [i for i in issues if i["code"] not in ("proxy", "content_broken")]
+        issues = [i for i in issues if i["code"] not in ("werss_content",)]
 
     # 质量自迭代(三池扫描 + 回归 + 双向扫描 + 检索词生成; 仅产出提案文件)
-    proposal = quality_iterate(payload, cfg)
-    reg = proposal.get("regression", {})
-    print(f"[+] 质量自迭代: 回归 {reg.get('passed', '?')}/{reg.get('total', '?')} 通过 | "
-          f"疑似误杀 {len(proposal.get('suspected_false_negatives', []))} 条 | "
-          f"疑似漏网 {len(proposal.get('suspected_false_positives', []))} 条")
+    try:
+        proposal = quality_iterate(pools, cfg)
+        reg = proposal.get("regression", {})
+        print(f"[+] 质量自迭代: 回归 {reg.get('passed', '?')}/{reg.get('total', '?')} 通过 | "
+              f"疑似误杀 {len(proposal.get('suspected_false_negatives', []))} 条 | "
+              f"疑似漏网 {len(proposal.get('suspected_false_positives', []))} 条")
+    except Exception as e:
+        print(f"[warn] 质量自迭代失败: {e}")
+        proposal, reg = {}, {}
 
-    # 质量红线: 回归不过 = 规则退化。质量优先于一切, 故插到最前面
+    # 质量红线: 回归不过 = 规则退化
     if reg.get("status") == "fail":
         detail = "；".join(
             f"《{f.get('title', '')[:22]}》期望{f.get('expect')}实为{f.get('actual')}"
@@ -432,7 +506,7 @@ def main():
             "subject": "【紧急·质量回退】筛选规则回归测试未通过",
         })
 
-    # 质量门槛被放宽(同样违背"质量优先")
+    # 质量门槛被放宽
     for w in proposal.get("quality_priority_warnings", []):
         issues.append({
             "code": "quality_threshold", "severity": "warning",
@@ -447,19 +521,29 @@ def main():
         "run_date": run_date,
         "checked_at": now.isoformat(timespec="seconds"),
         "deferred": deferred,
-        "hours_since_sync": round(gap_h, 1),
+        "hours_since_werss_sync": round(gap_h, 1),
         "issues": [i["code"] for i in issues],
         "actions": actions,
-        "source_health": sh,
-        "db_stats": db,
+        "pools": {k: {kk: vv for kk, vv in v.items()
+                      if kk not in ("label", "kind", "exported_dt", "latest_pub_dt")}
+                  for k, v in pools.items()},
     }
     (BASE_DIR / "data" / "health_report.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
 
     # 处置
+    if dry_run:
+        print(f"[dry-run] 发现 {len(issues)} 项需关注(不发送邮件):")
+        for i in issues:
+            print(f"   - [{i['severity']}] {i['code']}: {i['title']}")
+        if actions:
+            print("[dry-run] 自愈动作:", actions)
+        print("SELF_CHECK_DONE")
+        return
+
     if issues:
         subjects = [i["subject"] for i in issues][:3]
-        body = build_body(issues, sh, db, payload.get("exported_at", "unknown"))
+        body = build_body(issues, pools, proposal)
         digest_cloud.send_anomaly_burst(cfg, run_date, subjects, body, sent, hist_path)
     elif actions:
         info = "<p>公众号日报链路自查完成。发现 digest 今日未运行，已自动触发补跑（无需你操作）。</p>"
@@ -468,15 +552,13 @@ def main():
         digest_cloud.send_mail(f"公众号日报 · {run_date} · 自查已自动补跑", info, cfg)
         print("[+] 已发送'自动补跑'通知")
     else:
-        if not payload:
-            print(f"[+] 健康数据(articles_recent.json)暂缺, 已跳过链路巡检; 质量自迭代完成 "
-                  f"(回归 {reg.get('passed')}/{reg.get('total')} 通过)")
-        elif deferred:
-            print(f"[+] 链路自查顺延: 今日本地未同步(距上次约 {gap_h:.0f}h, 可能电脑未开机), "
-                  f"已跳过新鲜度类误报、未发现问题; 明日 {run_date} 继续巡检。")
+        if deferred:
+            print(f"[+] 链路自查顺延: 今日本机未同步(WeRSS 距上次约 {gap_h:.0f}h, 可能电脑未开机), "
+                  f"已跳过微信池新鲜度类误报、未发现问题; 明日继续巡检。")
         else:
-            print(f"[+] 链路健康, 无异常 (账号{sh.get('account_enabled')}/{sh.get('account_total')}, "
-                  f"代理{'可达' if sh.get('proxy_ok') else '不可达'}, 同步{ payload.get('exported_at')})")
+            wp = pools.get("werss", {})
+            print(f"[+] 链路健康, 无异常 (微信池 {wp.get('count')} 篇/{wp.get('n_sources')} 源, "
+                  f"更新于 {wp.get('exported_at')}; RSS/Web 云端池正常)")
 
     print("SELF_CHECK_DONE")
 
