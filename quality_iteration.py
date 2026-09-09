@@ -30,9 +30,9 @@ from pathlib import Path
 
 CST = timezone(timedelta(hours=8))
 
-# 三个源池: 微信(WeWe RSS) / RSS(官网 feed) / 官网直抓
+# 三个源池: 微信(WeRSS 自托管, 2026-09-09 起替代已弃用的 WeWe RSS) / RSS(官网 feed) / 官网直抓
 POOLS = [
-    ("微信", "data/articles_recent.json"),
+    ("微信", "data/werss_articles.json"),
     ("RSS", "data/rss_articles.json"),
     ("官网", "data/web_articles.json"),
 ]
