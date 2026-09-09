@@ -763,6 +763,18 @@ def main():
                 print(f"[+] 已合并 官网直抓 {len(web_arts)} 篇 (合计 {len(all_articles)} 篇)")
         except Exception as e:
             print(f"[warn] 读取 web_articles.json 失败, 跳过: {e}")
+    # 合并 WeRSS 自托管源 (本地 werss_to_digest.py 维护的 data/werss_articles.json,
+    # 替换已宕机的 WeWe RSS 微信池; 走微信读书个人账号 weread_mp 模式, 每源最新 1 篇)
+    werss_path = BASE_DIR / "data" / "werss_articles.json"
+    if werss_path.exists():
+        try:
+            werss_payload = json.loads(werss_path.read_text(encoding="utf-8"))
+            werss_arts = werss_payload.get("articles", [])
+            if werss_arts:
+                all_articles = all_articles + werss_arts
+                print(f"[+] 已合并 WeRSS 自托管 {len(werss_arts)} 篇 (合计 {len(all_articles)} 篇)")
+        except Exception as e:
+            print(f"[warn] 读取 werss_articles.json 失败, 跳过: {e}")
     exported_at = payload.get("exported_at", "unknown")
     cfg["n_sources"] = payload.get("n_sources", 18)
     db_stats = payload.get("db_stats", {})
