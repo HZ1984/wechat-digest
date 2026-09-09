@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-08T21:03:58+08:00",
+ "generated_at": "2026-09-09T21:03:10+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -11,7 +11,7 @@
  "suspected_false_negatives": [],
  "suspected_false_positives": [
   {
-   "title": "Edge AI Daily 早报（9月8日）",
+   "title": "Edge AI Daily 早报（9月9日）",
    "source": "钛媒体",
    "pool": "官网",
    "score": 94.0,
@@ -26,8 +26,8 @@
  ],
  "pool_sizes": {
   "微信": 0,
-  "RSS": 1325,
-  "官网": 205
+  "RSS": 1733,
+  "官网": 206
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
