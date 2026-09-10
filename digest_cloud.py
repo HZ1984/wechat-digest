@@ -62,6 +62,34 @@ AD_ZONE_RE = re.compile(r"广告|商务合作|软文")
 # "广告业务收入"等术语(虎嗅《百度AI云增长50%》误杀案例), 只保留明确的购买/导流指令
 AD_CTA_RE = re.compile(r"购买|下单|扫码|咨询|添加微信|优惠|立即抢购|抢购|点击购买|点击下方")
 
+# ---------------------------------------------------------------- 错误正文识别
+# 抓取层(WeRSS / weread_mp 等)偶发把微信 API 返回的"参数错误"等错误页 HTML 当正文存库,
+# 经清洗后仍以"参数错误…"开头、且总字数可能 >= min_chars, 从而漏过质量门槛被发进日报。
+# 这些短语绝不是正常文章开头, 命中即视为脏数据丢弃。2026-09-10 用户反馈: 盖世汽车社区 /
+# Barrons巴伦 / 新京报书评周刊 三篇以"参数错误"开头被误发。
+ERROR_TEXT_MARKERS = (
+    "参数错误", "系统错误", "系统繁忙", "请求失败", "访问过于频繁",
+    "请求过于频繁", "验证失败", "请稍后再试", "网络错误", "获取失败",
+    "内容不存在", "该内容已被发布者删除", "该文章不存在", "页面不存在",
+    "服务暂不可用", "加载失败", "数据获取失败", "无法获取", "请求异常",
+)
+
+def is_error_text(text: str) -> bool:
+    """判断文本是否为抓取失败的错误回显(而非真实正文)。"""
+    if not text:
+        return False
+    t = text.strip()
+    if not t:
+        return False
+    head = t[:60]
+    for m in ERROR_TEXT_MARKERS:
+        if head.startswith(m):
+            return True
+    # 兜底: 整段极短且含错误短语(如 '错误信息: 参数错误')
+    if len(t) <= 80 and any(m in t for m in ERROR_TEXT_MARKERS):
+        return True
+    return False
+
 
 def is_ad_zone(text: str) -> bool:
     """检测正文前 1500 字内是否夹带硬广(营销词与引导词相距 100 字内)。
@@ -799,6 +827,7 @@ def main():
     candidates, stale_note, skipped_low, skipped_black, in_window = [], [], 0, 0, 0
     skipped_event = 0
     skipped_corp = 0
+    skipped_error = 0
     for a in all_articles:
         try:
             pub = datetime.strptime(a["pub_date"][:10], "%Y-%m-%d")
@@ -815,6 +844,13 @@ def main():
         if a["link"] in sent or ("id:" + slug) in sent or ("title:" + a["title"].strip()) in sent:
             continue
         a["clean_text"] = clean_text(a.get("text", ""), quality_rules)  # 清洗微信噪声, 后续字数/评分/摘要均用它
+        # 错误正文拦截: 抓取层偶发把微信 API 的"参数错误"等错误页当正文存库,
+        # 清洗后仍会以"参数错误…"开头且字数可能达标, 必须在此剔除, 否则误发进日报。
+        if is_error_text(a.get("clean_text") or a["text"]):
+            skipped_error += 1
+            if skipped_error <= 8:
+                print(f"    [错误正文] 疑似抓取失败回显(参数错误等), 跳过: {a.get('source','')} | {a['title'][:40]}")
+            continue
         if is_low_value(a, quality_rules):   # 低信息密度内容(公告/日历/预警/内部活动等)直接剔除
             skipped_low += 1
             continue
@@ -833,7 +869,7 @@ def main():
         candidates.append(a)
     print(f"[+] 回溯 {cfg.get('lookback_days', 3)} 天且未推送过: {len(candidates)} 篇"
           f" (窗口内共 {in_window} 篇, 另有 {skipped_low} 篇低信息密度 + {skipped_black} 篇黑名单来源"
-          f" + {skipped_event} 篇活动招募帖 + {skipped_corp} 篇企业报告稿已剔除)")
+          f" + {skipped_event} 篇活动招募帖 + {skipped_corp} 篇企业报告稿 + {skipped_error} 篇错误正文已剔除)")
 
     # 无新文章 / 异常: 区分三类情况, 每类发 2~3 封报错邮件(同日不重复), 让用户一眼可见
     # db_stats 由 sync_data 带来: recent_total=近N天总文章数, recent_with_content=其中有正文的篇数
