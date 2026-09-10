@@ -284,6 +284,35 @@ def classify(pools: dict, sent: dict, run_date: str, now: datetime, digest_run,
                 "subject": f"【{'紧急' if sev=='critical' else '注意'}·同步停滞】{label}长时间未更新",
             })
 
+    # ===== B2. 错误正文扫描(抓取层把 API 错误回显当正文) =====
+    # 2026-09-10 实测: 盖世汽车社区 / Barrons巴伦 / 新京报书评周刊 三篇曾以"参数错误"开头
+    # 被误发进日报。日报侧已加双闸门拦截(werss_to_digest + digest_cloud), 此处负责"看见"它。
+    for key, rel, label, kind in POOLS:
+        p = BASE_DIR / rel
+        if not p.exists():
+            continue
+        try:
+            d = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        arts = d.get("articles") if isinstance(d, dict) else None
+        if not isinstance(arts, list):
+            continue
+        bad = sum(1 for a in arts
+                  if digest_cloud.is_error_text(a.get("text") or a.get("content_html") or ""))
+        if bad:
+            sev = "critical" if bad >= 3 else "warning"
+            issues.append({
+                "code": f"{key}_error_text", "severity": sev,
+                "title": f"{label}发现 {bad} 篇疑似抓取错误正文",
+                "detail": (f"{rel} 中有 {bad} 篇文章正文以“参数错误”等错误短语开头, "
+                           f"说明抓取层把微信 API 的错误回显当成了正文。日报侧已加双闸门拦截, 不会误发, "
+                           f"但提示该源抓取不稳定, 需关注。"),
+                "fix": (f"等待下次同步自动重抓即可修复; 若某源频繁出现, 在本地检查 WeRSS 微信读书账号会话是否失效 "
+                        f"(打开 http://localhost:8001 重新登录), 或调大抓取重试。"),
+                "subject": f"【{'紧急' if sev=='critical' else '注意'}·脏数据】{label}含 {bad} 篇错误正文",
+            })
+
     # ===== C. 云端跑批: digest 今天是否真发出 =====
     daily_sent = run_date in sent.values()
     anomaly_sent = f"__anomaly__{run_date}" in sent
