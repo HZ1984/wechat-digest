@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-09T21:03:10+08:00",
+ "generated_at": "2026-09-10T21:02:30+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -8,26 +8,66 @@
   "failed": [],
   "pass_rate": 100.0
  },
- "suspected_false_negatives": [],
+ "suspected_false_negatives": [
+  {
+   "title": "说话少了人会变笨？| 塑料和食物垃圾做成了饼干，香喷喷的，你敢吃吗？| 自然每周简报",
+   "source": "自然系列",
+   "pool": "微信",
+   "length": 2630,
+   "score": 80.0,
+   "reasons": [
+    "正文 2630 字",
+    "时效+14(1天前)",
+    "命中兴趣: ai、科技"
+   ]
+  }
+ ],
  "suspected_false_positives": [
   {
-   "title": "Edge AI Daily 早报（9月9日）",
+   "title": "世界汽车产业，正在等待怎样的中国方案？",
+   "source": "盖世汽车社区",
+   "pool": "微信",
+   "score": 100,
+   "signals": {
+    "营销残留": [
+     "加微信"
+    ]
+   },
+   "signal_count": 1,
+   "strong": true
+  },
+  {
+   "title": "Edge AI Daily 早报（9月10日）",
    "source": "钛媒体",
    "pool": "官网",
-   "score": 94.0,
+   "score": 90.0,
    "signals": {},
    "signal_count": 0,
+   "strong": true
+  },
+  {
+   "title": "锂矿企业，真的赚大了？",
+   "source": "盖世汽车社区",
+   "pool": "微信",
+   "score": 84.0,
+   "signals": {
+    "营销残留": [
+     "加微信"
+    ]
+   },
+   "signal_count": 1,
    "strong": true
   }
  ],
  "quality_priority_warnings": [],
  "research_topics": [
-  "内容质量评分 体系 最佳实践 newsletter curation"
+  "低信息密度内容 误杀 判定 阈值 内容策展",
+  "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 0,
-  "RSS": 1733,
-  "官网": 206
+  "微信": 109,
+  "RSS": 2095,
+  "官网": 207
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
