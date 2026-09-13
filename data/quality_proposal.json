@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-12T21:02:08+08:00",
+ "generated_at": "2026-09-13T21:02:03+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -14,10 +14,10 @@
    "source": "CellPress全科学",
    "pool": "微信",
    "length": 3952,
-   "score": 86.0,
+   "score": 81.0,
    "reasons": [
     "正文 3952 字",
-    "时效+8(2天前)",
+    "时效+3(3天前)",
     "命中兴趣: 人工智能、科技"
    ]
   },
@@ -26,10 +26,10 @@
    "source": "自然系列",
    "pool": "微信",
    "length": 2630,
-   "score": 69.0,
+   "score": 61.0,
    "reasons": [
     "正文 2630 字",
-    "时效+3(3天前)",
+    "时效-5(4天前, 偏旧)",
     "命中兴趣: ai、科技"
    ]
   }
@@ -45,10 +45,32 @@
    "strong": true
   },
   {
+   "title": "Edge AI Daily 早报（9月13日）",
+   "source": "钛媒体",
+   "pool": "官网",
+   "score": 90.0,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  },
+  {
    "title": "世界汽车产业，正在等待怎样的中国方案？",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 91.0,
+   "score": 83.0,
+   "signals": {
+    "营销残留": [
+     "加微信"
+    ]
+   },
+   "signal_count": 1,
+   "strong": true
+  },
+  {
+   "title": "盖世周报 | 供应商账期再收紧；日本电机巨头造假结果公布",
+   "source": "盖世汽车社区",
+   "pool": "微信",
+   "score": 80.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -61,7 +83,7 @@
    "title": "电池行业的新生死线，来了",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 84.0,
+   "score": 78.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -74,7 +96,7 @@
    "title": "锂矿企业，真的赚大了？",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 72.0,
+   "score": 67.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -82,17 +104,35 @@
    },
    "signal_count": 1,
    "strong": true
+  },
+  {
+   "title": "李强主持召开国务院常务会议，研究算力网建设有关工作等",
+   "source": "中国发展改革",
+   "pool": "微信",
+   "score": 63.0,
+   "signals": {
+    "宣传通稿腔": [
+     "贯彻落实"
+    ],
+    "空泛无数据": [
+     "正文1292字仅6个数字"
+    ]
+   },
+   "signal_count": 2,
+   "strong": false
   }
  ],
  "quality_priority_warnings": [],
  "research_topics": [
   "低信息密度内容 误杀 判定 阈值 内容策展",
+  "企业宣传稿 通稿 自动识别 NLP 特征",
+  "内容信息密度 评估 指标 信息熵",
   "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 208,
-  "RSS": 2653,
-  "官网": 213
+  "微信": 245,
+  "RSS": 2787,
+  "官网": 215
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
