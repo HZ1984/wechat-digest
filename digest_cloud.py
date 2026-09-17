@@ -3,7 +3,8 @@
 """
 公众号每日精选 · 云端版(GitHub Actions 运行)
 ============================================
-读取 data/articles_recent.json(由本地 sync_data.py 推送) ->
+读取 data/werss_articles.json(本地 WeRSS 自托管微信主池, run_werss_sync.ps1 推送) +
+  data/rss_articles.json(云端 RSS 同步) + data/web_articles.json(云端官网直抓) ->
   按天去重(sent_history) -> 启发式评分 -> 主线+自由探索精选 ->
   生成邮件 HTML -> SMTP 发送到收件箱 -> 更新 sent_history(由 workflow 提交回仓库)
 
@@ -760,16 +761,42 @@ def main():
     run_date = now.strftime("%Y-%m-%d")
     print(f"== 云端精选管线 · {run_date} (北京时间) ==")
 
-    data_path = BASE_DIR / "data" / "articles_recent.json"
-    if not data_path.exists():
-        print("[error] data/articles_recent.json 不存在, 请先在本地运行 sync_data.py")
-        send_mail(f"公众号日报 · {run_date} · 数据缺失提醒",
-                  f"<p>仓库中没有文章数据(data/articles_recent.json 缺失)。</p>"
-                  f"<p>请在本地电脑运行 sync_data.py 同步数据。</p>", cfg)
-        return
-    payload = json.loads(data_path.read_text(encoding="utf-8"))
-    all_articles = payload.get("articles", [])
-    # 合并 RSS 重源 (云端 rss-sync 每 2 小时维护的 data/rss_articles.json, 独立于 WeChat 源)
+    # ---------- 加载各源池 ----------
+    # 主微信池: 本地自托管 WeRSS (werss_articles.json, 走微信读书 weread_mp 模式, 每源最新 1 篇)
+    # 旧 WeWe RSS (articles_recent.json) 已于 2026-09 宕机, 仅作兜底兼容, 不再驱动新鲜度判断
+    werss_path = BASE_DIR / "data" / "werss_articles.json"
+    legacy_path = BASE_DIR / "data" / "articles_recent.json"
+
+    all_articles = []
+    primary = None  # 新鲜度/元数据以主微信池(werss)为准
+
+    if werss_path.exists():
+        try:
+            werss_payload = json.loads(werss_path.read_text(encoding="utf-8"))
+            werss_arts = werss_payload.get("articles", [])
+            if werss_arts:
+                all_articles = all_articles + werss_arts
+                print(f"[+] 已合并 WeRSS 自托管 {len(werss_arts)} 篇")
+                primary = werss_payload
+        except Exception as e:
+            print(f"[warn] 读取 werss_articles.json 失败, 跳过: {e}")
+    else:
+        print("[warn] data/werss_articles.json 缺失, 微信主池不可用")
+
+    # 兜底: 旧 WeWe RSS (已宕机, 可能为空, 仅并入以防万一)
+    if legacy_path.exists():
+        try:
+            legacy_payload = json.loads(legacy_path.read_text(encoding="utf-8"))
+            legacy_arts = legacy_payload.get("articles", [])
+            if legacy_arts:
+                all_articles = all_articles + legacy_arts
+                print(f"[+] 已合并(兜底)旧 WeWe RSS {len(legacy_arts)} 篇")
+            if primary is None:
+                primary = legacy_payload
+        except Exception as e:
+            print(f"[warn] 读取 articles_recent.json 失败, 跳过: {e}")
+
+    # 合并 RSS 重源 (云端 rss-sync 每 2 小时维护的 data/rss_articles.json, 独立于微信源)
     rss_path = BASE_DIR / "data" / "rss_articles.json"
     if rss_path.exists():
         try:
@@ -778,9 +805,12 @@ def main():
             if rss_arts:
                 all_articles = all_articles + rss_arts
                 print(f"[+] 已合并 RSS 重源 {len(rss_arts)} 篇 (合计 {len(all_articles)} 篇)")
+            if primary is None:
+                primary = rss_payload
         except Exception as e:
             print(f"[warn] 读取 rss_articles.json 失败, 跳过: {e}")
-    # 合并 官网直抓源 (本地 fetch_web.py 维护的 data/web_articles.json, 与 RSS 池解耦)
+
+    # 合并 官网直抓源 (云端 web-sync 维护的 data/web_articles.json, 与 RSS 池解耦)
     web_path = BASE_DIR / "data" / "web_articles.json"
     if web_path.exists():
         try:
@@ -789,23 +819,22 @@ def main():
             if web_arts:
                 all_articles = all_articles + web_arts
                 print(f"[+] 已合并 官网直抓 {len(web_arts)} 篇 (合计 {len(all_articles)} 篇)")
+            if primary is None:
+                primary = web_payload
         except Exception as e:
             print(f"[warn] 读取 web_articles.json 失败, 跳过: {e}")
-    # 合并 WeRSS 自托管源 (本地 werss_to_digest.py 维护的 data/werss_articles.json,
-    # 替换已宕机的 WeWe RSS 微信池; 走微信读书个人账号 weread_mp 模式, 每源最新 1 篇)
-    werss_path = BASE_DIR / "data" / "werss_articles.json"
-    if werss_path.exists():
-        try:
-            werss_payload = json.loads(werss_path.read_text(encoding="utf-8"))
-            werss_arts = werss_payload.get("articles", [])
-            if werss_arts:
-                all_articles = all_articles + werss_arts
-                print(f"[+] 已合并 WeRSS 自托管 {len(werss_arts)} 篇 (合计 {len(all_articles)} 篇)")
-        except Exception as e:
-            print(f"[warn] 读取 werss_articles.json 失败, 跳过: {e}")
-    exported_at = payload.get("exported_at", "unknown")
-    cfg["n_sources"] = payload.get("n_sources", 18)
-    db_stats = payload.get("db_stats", {})
+
+    # 数据缺失兜底: 所有池都为空才报错(不再因单一死文件误报)
+    if not all_articles:
+        print("[error] 所有数据源均为空, 无可用文章")
+        send_mail(f"公众号日报 · {run_date} · 数据缺失提醒",
+                  f"<p>仓库中各源池(微信/RSS/官网)均无文章数据。</p>"
+                  f"<p>请检查本地 WeRSS 同步任务(run_werss_sync.ps1)是否正常运行并推送 werss_articles.json。</p>", cfg)
+        return
+
+    exported_at = (primary or {}).get("exported_at", "unknown")
+    cfg["n_sources"] = (primary or {}).get("n_sources", 18)
+    db_stats = (primary or {}).get("db_stats", {})
     print(f"[+] 数据: {len(all_articles)} 篇 (本地导出于 {exported_at})"
           + (f" | DB近{db_stats.get('days')}天 {db_stats.get('recent_total')}篇, 仅{db_stats.get('recent_with_content')}篇有正文"
              if db_stats else ""))
