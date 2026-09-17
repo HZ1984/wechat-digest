@@ -284,9 +284,12 @@ def classify(pools: dict, sent: dict, run_date: str, now: datetime, digest_run,
                 "subject": f"【{'紧急' if sev=='critical' else '注意'}·同步停滞】{label}长时间未更新",
             })
 
-    # ===== B2. 错误正文扫描(抓取层把 API 错误回显当正文) =====
-    # 2026-09-10 实测: 盖世汽车社区 / Barrons巴伦 / 新京报书评周刊 三篇曾以"参数错误"开头
-    # 被误发进日报。日报侧已加双闸门拦截(werss_to_digest + digest_cloud), 此处负责"看见"它。
+    # ===== B2. 反爬拦截扫描(仅真正需关注的抓取故障) =====
+    # 2026-09-17 修正: 此前把"参数错误/已删除/页面不存在"等也当成抓取故障来邮件告警, 但经核实——
+    # 这些只是文章被删除或迁移后, 读者点开链接时浏览器才显示的提示(正文本身是干净的),
+    # 属异步采集的普遍现象, 很常见、不可控、也不影响日报质量, 故不再就此发邮件。
+    # 现在只关注真正的抓取故障: 正文被源站反爬验证码页覆盖(如"验证码/请完成验证"),
+    # 这才是源站限流/防护升级的信号, 才值得告警。日报侧 is_error_text 闸门仍会挡下这类脏正文。
     for key, rel, label, kind in POOLS:
         p = BASE_DIR / rel
         if not p.exists():
@@ -299,18 +302,18 @@ def classify(pools: dict, sent: dict, run_date: str, now: datetime, digest_run,
         if not isinstance(arts, list):
             continue
         bad = sum(1 for a in arts
-                  if digest_cloud.is_error_text(a.get("text") or a.get("content_html") or ""))
+                  if digest_cloud.is_capture_failure(a.get("text") or a.get("content_html") or ""))
         if bad:
             sev = "critical" if bad >= 3 else "warning"
             issues.append({
-                "code": f"{key}_error_text", "severity": sev,
-                "title": f"{label}发现 {bad} 篇疑似抓取错误正文",
-                "detail": (f"{rel} 中有 {bad} 篇文章正文以“参数错误”等错误短语开头, "
-                           f"说明抓取层把微信 API 的错误回显当成了正文。日报侧已加双闸门拦截, 不会误发, "
-                           f"但提示该源抓取不稳定, 需关注。"),
-                "fix": (f"等待下次同步自动重抓即可修复; 若某源频繁出现, 在本地检查 WeRSS 微信读书账号会话是否失效 "
-                        f"(打开 http://localhost:8001 重新登录), 或调大抓取重试。"),
-                "subject": f"【{'紧急' if sev=='critical' else '注意'}·脏数据】{label}含 {bad} 篇错误正文",
+                "code": f"{key}_capture_blocked", "severity": sev,
+                "title": f"{label}发现 {bad} 篇疑似被源站反爬拦截(正文为验证码页)",
+                "detail": (f"{rel} 中有 {bad} 篇文章正文是源站的反爬验证码页(如\"验证码/请完成验证\"), "
+                           f"说明该源云端抓取被限流。这类脏正文日报侧 is_error_text 闸门会挡下、不会误发, "
+                           f"但提示该源抓取不稳定, 下次同步大概率自愈; 若频繁出现需关注源站防护。"),
+                "fix": (f"等待下次同步自动重抓即可修复; 若某源频繁出现, 在对应抓取脚本(web/rss)增加退避重试 "
+                        f"或切换 UA/代理。"),
+                "subject": f"【{'紧急' if sev=='critical' else '注意'}·反爬拦截】{label}含 {bad} 篇验证码页",
             })
 
     # ===== C. 云端跑批: digest 今天是否真发出 =====
