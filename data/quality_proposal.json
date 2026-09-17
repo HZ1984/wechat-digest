@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-17T01:22:04+08:00",
+ "generated_at": "2026-09-18T01:20:53+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -14,19 +14,28 @@
    "source": "自然系列",
    "pool": "微信",
    "length": 2802,
-   "score": 78.0,
+   "score": 72.0,
    "reasons": [
     "正文 2802 字",
-    "时效+20(今天)"
+    "时效+14(1天前)"
    ]
   }
  ],
  "suspected_false_positives": [
   {
+   "title": "路透早报：9月17日",
+   "source": "路透财经早报",
+   "pool": "微信",
+   "score": 98.0,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  },
+  {
    "title": "中国供应链出海，要拼“回购”",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 100.0,
+   "score": 94.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -36,38 +45,20 @@
    "strong": true
   },
   {
-   "title": "Edge AI Daily 早报（9月16日）",
-   "source": "钛媒体",
-   "pool": "官网",
-   "score": 94.0,
-   "signals": {},
-   "signal_count": 0,
+   "title": "动力电池退役潮来了，标准正在制定",
+   "source": "盖世汽车社区",
+   "pool": "微信",
+   "score": 90.0,
+   "signals": {
+    "营销残留": [
+     "加微信"
+    ]
+   },
+   "signal_count": 1,
    "strong": true
   },
   {
    "title": "中国方案出海：快，挣不来信任？",
-   "source": "盖世汽车社区",
-   "pool": "微信",
-   "score": 90.0,
-   "signals": {
-    "营销残留": [
-     "加微信"
-    ]
-   },
-   "signal_count": 1,
-   "strong": true
-  },
-  {
-   "title": "路透早报：9月15日",
-   "source": "路透财经早报",
-   "pool": "微信",
-   "score": 90.0,
-   "signals": {},
-   "signal_count": 0,
-   "strong": true
-  },
-  {
-   "title": "2026年1-7月智能座舱供应商装机量排行榜：大模型重塑语音交互，头部集中度持续提升丨盖世汽车研究院",
    "source": "盖世汽车社区",
    "pool": "微信",
    "score": 84.0,
@@ -80,19 +71,19 @@
    "strong": true
   },
   {
-   "title": "路透早报：9月11日",
+   "title": "路透早报：9月15日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 70.0,
+   "score": 84.0,
    "signals": {},
    "signal_count": 0,
    "strong": true
   },
   {
-   "title": "盖世周报 | 供应商账期再收紧；日本电机巨头造假结果公布",
+   "title": "2026年1-7月智能座舱供应商装机量排行榜：大模型重塑语音交互，头部集中度持续提升丨盖世汽车研究院",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 63.0,
+   "score": 79.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -102,28 +93,51 @@
    "strong": true
   },
   {
-   "title": "电池行业的新生死线，来了",
-   "source": "盖世汽车社区",
-   "pool": "微信",
-   "score": 58.0,
+   "title": "国务院办公厅印发《关于进一步加强烟花爆竹全链条安全监管的意见》",
+   "source": "界面新闻",
+   "pool": "官网",
+   "score": 74.0,
    "signals": {
-    "营销残留": [
-     "加微信"
+    "宣传通稿腔": [
+     "贯彻落实"
+    ],
+    "空泛无数据": [
+     "正文1500字仅0个数字"
     ]
    },
-   "signal_count": 1,
-   "strong": true
+   "signal_count": 2,
+   "strong": false
+  },
+  {
+   "title": "习近平就发展先进制造业作出重要指示",
+   "source": "中国发展改革",
+   "pool": "微信",
+   "score": 62.0,
+   "signals": {
+    "宣传通稿腔": [
+     "重要讲话",
+     "深入学习贯彻",
+     "贯彻落实"
+    ],
+    "空泛无数据": [
+     "正文1484字仅8个数字"
+    ]
+   },
+   "signal_count": 2,
+   "strong": false
   }
  ],
  "quality_priority_warnings": [],
  "research_topics": [
   "低信息密度内容 误杀 判定 阈值 内容策展",
+  "企业宣传稿 通稿 自动识别 NLP 特征",
+  "内容信息密度 评估 指标 信息熵",
   "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 359,
-  "RSS": 3226,
-  "官网": 217
+  "微信": 406,
+  "RSS": 3082,
+  "官网": 206
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
