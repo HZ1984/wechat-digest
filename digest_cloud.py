@@ -92,6 +92,38 @@ def is_error_text(text: str) -> bool:
     return False
 
 
+# 反爬拦截标记: 仅当正文是网站的反爬验证码页(而非真实文章)时才算"抓取被拦截"。
+# 与 ERROR_TEXT_MARKERS 的关键区别: 后者含"参数错误/已删除/页面不存在"等——这些是文章被删除或迁移后,
+# 读者点开链接时浏览器才显示的提示(正文本身是干净的), 属异步采集的普遍现象, 很常见且不可控,
+# 不再视为抓取故障(2026-09-17 起, self_check 不再就此类发邮件告警)。
+CAPTCHA_MARKERS = (
+    "验证码", "访问验证", "请完成验证", "验证通过后再访问",
+    "人机验证", "安全验证", "行为验证", "滑动验证",
+    "请先完成安全验证", "系统检测到您的访问过于频繁",
+)
+
+
+def is_capture_failure(text: str) -> bool:
+    """判断正文是否为网站反爬验证码页(抓取被限流/拦截), 而非真实文章。
+
+    这才是真正需要告警的"抓取故障": 正文本身就是验证码页, 说明该源云端抓取被限流,
+    下次同步大概率自愈, 但频繁出现说明源站防护升级。与 is_error_text 的"死链提示"
+    判定互补——前者(死链)正文干净不再告警, 本函数(反爬)正文是脏验证码页才告警。
+    """
+    if not text:
+        return False
+    t = text.strip()
+    if not t:
+        return False
+    head = t[:60]
+    for m in CAPTCHA_MARKERS:
+        if head.startswith(m):
+            return True
+    if len(t) <= 80 and any(m in t for m in CAPTCHA_MARKERS):
+        return True
+    return False
+
+
 def is_ad_zone(text: str) -> bool:
     """检测正文前 1500 字内是否夹带硬广(营销词与引导词相距 100 字内)。
     8/25 修复: 排除媒体文末页脚模板——
