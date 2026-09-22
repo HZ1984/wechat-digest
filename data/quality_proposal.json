@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-22T02:22:29+08:00",
+ "generated_at": "2026-09-23T01:25:00+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -14,22 +14,11 @@
    "source": "南方周末",
    "pool": "微信",
    "length": 4553,
-   "score": 90.0,
+   "score": 84.0,
    "reasons": [
     "正文 4553 字，篇幅可观",
-    "时效+14(1天前)",
+    "时效+8(2天前)",
     "命中兴趣: 科技、商业、投资"
-   ]
-  },
-  {
-   "title": "迷幻蘑菇成分竟能防化疗副作用？| 虎鲸撞船可能只是在玩 | 月球形成只花了5小时？| 自然每周简报",
-   "source": "自然系列",
-   "pool": "微信",
-   "length": 2802,
-   "score": 46.0,
-   "reasons": [
-    "正文 2802 字",
-    "时效-12(5天前, 偏旧)"
    ]
   }
  ],
@@ -38,7 +27,7 @@
    "title": "原生无人驾驶量产落地，特斯拉Cybercab核心零部件配套供应商一览",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 100,
+   "score": 98.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -48,19 +37,26 @@
    "strong": true
   },
   {
-   "title": "Edge AI Daily 早报（9月21日）",
-   "source": "钛媒体",
-   "pool": "官网",
-   "score": 86.0,
-   "signals": {},
-   "signal_count": 0,
-   "strong": true
+   "title": "当“减速”成为共识之后：美国AI巨头的“囚徒困境”",
+   "source": "虎嗅APP",
+   "pool": "RSS",
+   "score": 90.0,
+   "signals": {
+    "宣传通稿腔": [
+     "纷纷表示"
+    ],
+    "空泛无数据": [
+     "正文1500字仅5个数字"
+    ]
+   },
+   "signal_count": 2,
+   "strong": false
   },
   {
    "title": "12个月造一款车，供应商验证只剩3-4个月",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 85.0,
+   "score": 77.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -73,7 +69,7 @@
    "title": "路透早报：9月18日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 85.0,
+   "score": 77.0,
    "signals": {},
    "signal_count": 0,
    "strong": true
@@ -82,7 +78,7 @@
    "title": "盖世周报 | 南北丰田合二为一；曝佛瑞亚拟出售歌乐电子",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 76.0,
+   "score": 70.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -95,7 +91,7 @@
    "title": "全球动力电池装车量：前7个月同比增加123GWh，七家中国企业合计新增108.8GWh",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 74.0,
+   "score": 69.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -108,34 +104,39 @@
    "title": "路透早报：9月17日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 73.0,
+   "score": 66.0,
    "signals": {},
    "signal_count": 0,
    "strong": true
   },
   {
-   "title": "中国供应链出海，要拼“回购”",
-   "source": "盖世汽车社区",
-   "pool": "微信",
-   "score": 68.0,
+   "title": "中信集团董事长奚国华获颁哈萨克斯坦“二级友谊勋章”",
+   "source": "财经杂志",
+   "pool": "官网",
+   "score": 59.0,
    "signals": {
-    "营销残留": [
-     "加微信"
+    "宣传通稿腔": [
+     "再上新台阶"
+    ],
+    "空泛无数据": [
+     "正文883字仅7个数字"
     ]
    },
-   "signal_count": 1,
-   "strong": true
+   "signal_count": 2,
+   "strong": false
   }
  ],
  "quality_priority_warnings": [],
  "research_topics": [
   "低信息密度内容 误杀 判定 阈值 内容策展",
+  "企业宣传稿 通稿 自动识别 NLP 特征",
+  "内容信息密度 评估 指标 信息熵",
   "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 415,
-  "RSS": 2321,
-  "官网": 250
+  "微信": 410,
+  "RSS": 2394,
+  "官网": 262
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
