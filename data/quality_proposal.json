@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-23T01:25:00+08:00",
+ "generated_at": "2026-09-24T01:32:17+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -14,20 +14,29 @@
    "source": "南方周末",
    "pool": "微信",
    "length": 4553,
-   "score": 84.0,
+   "score": 79.0,
    "reasons": [
     "正文 4553 字，篇幅可观",
-    "时效+8(2天前)",
+    "时效+3(3天前)",
     "命中兴趣: 科技、商业、投资"
    ]
   }
  ],
  "suspected_false_positives": [
   {
+   "title": "路透早报：9月22日",
+   "source": "路透财经早报",
+   "pool": "微信",
+   "score": 100,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  },
+  {
    "title": "原生无人驾驶量产落地，特斯拉Cybercab核心零部件配套供应商一览",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 98.0,
+   "score": 92.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -40,7 +49,7 @@
    "title": "当“减速”成为共识之后：美国AI巨头的“囚徒困境”",
    "source": "虎嗅APP",
    "pool": "RSS",
-   "score": 90.0,
+   "score": 84.0,
    "signals": {
     "宣传通稿腔": [
      "纷纷表示"
@@ -56,7 +65,20 @@
    "title": "12个月造一款车，供应商验证只剩3-4个月",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 77.0,
+   "score": 70.0,
+   "signals": {
+    "营销残留": [
+     "加微信"
+    ]
+   },
+   "signal_count": 1,
+   "strong": true
+  },
+  {
+   "title": "跳槽来的酒店销冠，成了总经理的眼中钉",
+   "source": "虎嗅APP",
+   "pool": "RSS",
+   "score": 70.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -69,7 +91,7 @@
    "title": "路透早报：9月18日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 77.0,
+   "score": 70.0,
    "signals": {},
    "signal_count": 0,
    "strong": true
@@ -78,7 +100,7 @@
    "title": "盖世周报 | 南北丰田合二为一；曝佛瑞亚拟出售歌乐电子",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 70.0,
+   "score": 65.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -88,38 +110,16 @@
    "strong": true
   },
   {
-   "title": "全球动力电池装车量：前7个月同比增加123GWh，七家中国企业合计新增108.8GWh",
-   "source": "盖世汽车社区",
+   "title": "李强在上海调研",
+   "source": "中国发展改革",
    "pool": "微信",
-   "score": 69.0,
-   "signals": {
-    "营销残留": [
-     "加微信"
-    ]
-   },
-   "signal_count": 1,
-   "strong": true
-  },
-  {
-   "title": "路透早报：9月17日",
-   "source": "路透财经早报",
-   "pool": "微信",
-   "score": 66.0,
-   "signals": {},
-   "signal_count": 0,
-   "strong": true
-  },
-  {
-   "title": "中信集团董事长奚国华获颁哈萨克斯坦“二级友谊勋章”",
-   "source": "财经杂志",
-   "pool": "官网",
-   "score": 59.0,
+   "score": 61.0,
    "signals": {
     "宣传通稿腔": [
-     "再上新台阶"
+     "贯彻落实"
     ],
     "空泛无数据": [
-     "正文883字仅7个数字"
+     "正文1119字仅6个数字"
     ]
    },
    "signal_count": 2,
@@ -134,9 +134,9 @@
   "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 410,
-  "RSS": 2394,
-  "官网": 262
+  "微信": 419,
+  "RSS": 2456,
+  "官网": 189
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
