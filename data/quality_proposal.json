@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-24T01:32:17+08:00",
+ "generated_at": "2026-09-25T01:37:33+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -14,15 +14,24 @@
    "source": "南方周末",
    "pool": "微信",
    "length": 4553,
-   "score": 79.0,
+   "score": 71.0,
    "reasons": [
     "正文 4553 字，篇幅可观",
-    "时效+3(3天前)",
+    "时效-5(4天前, 偏旧)",
     "命中兴趣: 科技、商业、投资"
    ]
   }
  ],
  "suspected_false_positives": [
+  {
+   "title": "路透早报：9月24日",
+   "source": "路透财经早报",
+   "pool": "微信",
+   "score": 100,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  },
   {
    "title": "路透早报：9月22日",
    "source": "路透财经早报",
@@ -33,10 +42,26 @@
    "strong": true
   },
   {
+   "title": "闲鱼上的ChatGPT代充暗号，已经进化到我看不懂的程度了。",
+   "source": "数字生命卡兹克",
+   "pool": "微信",
+   "score": 98.0,
+   "signals": {
+    "营销残留": [
+     "加微信"
+    ],
+    "空泛无数据": [
+     "正文1500字仅9个数字"
+    ]
+   },
+   "signal_count": 2,
+   "strong": true
+  },
+  {
    "title": "原生无人驾驶量产落地，特斯拉Cybercab核心零部件配套供应商一览",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 92.0,
+   "score": 87.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -46,10 +71,26 @@
    "strong": true
   },
   {
+   "title": "闲鱼上的ChatGPT代充暗号，已经进化到我看不懂的程度了。",
+   "source": "虎嗅APP",
+   "pool": "RSS",
+   "score": 86.0,
+   "signals": {
+    "营销残留": [
+     "加微信"
+    ],
+    "空泛无数据": [
+     "正文1500字仅9个数字"
+    ]
+   },
+   "signal_count": 2,
+   "strong": true
+  },
+  {
    "title": "当“减速”成为共识之后：美国AI巨头的“囚徒困境”",
    "source": "虎嗅APP",
    "pool": "RSS",
-   "score": 84.0,
+   "score": 78.0,
    "signals": {
     "宣传通稿腔": [
      "纷纷表示"
@@ -62,23 +103,10 @@
    "strong": false
   },
   {
-   "title": "12个月造一款车，供应商验证只剩3-4个月",
-   "source": "盖世汽车社区",
-   "pool": "微信",
-   "score": 70.0,
-   "signals": {
-    "营销残留": [
-     "加微信"
-    ]
-   },
-   "signal_count": 1,
-   "strong": true
-  },
-  {
    "title": "跳槽来的酒店销冠，成了总经理的眼中钉",
    "source": "虎嗅APP",
    "pool": "RSS",
-   "score": 70.0,
+   "score": 64.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -88,38 +116,16 @@
    "strong": true
   },
   {
-   "title": "路透早报：9月18日",
-   "source": "路透财经早报",
+   "title": "铭记海坨山精神·筑牢新时代担当——赛迪顾问党委开展主题研学活动",
+   "source": "赛迪顾问",
    "pool": "微信",
-   "score": 70.0,
-   "signals": {},
-   "signal_count": 0,
-   "strong": true
-  },
-  {
-   "title": "盖世周报 | 南北丰田合二为一；曝佛瑞亚拟出售歌乐电子",
-   "source": "盖世汽车社区",
-   "pool": "微信",
-   "score": 65.0,
-   "signals": {
-    "营销残留": [
-     "加微信"
-    ]
-   },
-   "signal_count": 1,
-   "strong": true
-  },
-  {
-   "title": "李强在上海调研",
-   "source": "中国发展改革",
-   "pool": "微信",
-   "score": 61.0,
+   "score": 59.0,
    "signals": {
     "宣传通稿腔": [
-     "贯彻落实"
+     "纷纷表示"
     ],
     "空泛无数据": [
-     "正文1119字仅6个数字"
+     "正文1228字仅3个数字"
     ]
    },
    "signal_count": 2,
@@ -134,9 +140,9 @@
   "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 419,
-  "RSS": 2456,
-  "官网": 189
+  "微信": 441,
+  "RSS": 2271,
+  "官网": 210
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
