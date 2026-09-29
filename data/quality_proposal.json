@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-09-29T03:53:31+08:00",
+ "generated_at": "2026-09-30T02:21:49+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -11,7 +11,7 @@
  "suspected_false_negatives": [],
  "suspected_false_positives": [
   {
-   "title": "路透早报：9月28日",
+   "title": "路透早报：9月29日",
    "source": "路透财经早报",
    "pool": "微信",
    "score": 100,
@@ -20,7 +20,16 @@
    "strong": true
   },
   {
-   "title": "特斯拉的Cybercab是发令枪，行业规模化拐点或将2030年到来",
+   "title": "路透早报：9月28日",
+   "source": "路透财经早报",
+   "pool": "微信",
+   "score": 96.0,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  },
+  {
+   "title": "智能全地形开启新路线，神行者8核心零部件配套供应商一览",
    "source": "盖世汽车社区",
    "pool": "微信",
    "score": 90.0,
@@ -33,35 +42,10 @@
    "strong": true
   },
   {
-   "title": "Edge AI Daily 早报（9月28日）",
-   "source": "钛媒体",
-   "pool": "官网",
-   "score": 86.0,
-   "signals": {},
-   "signal_count": 0,
-   "strong": true
-  },
-  {
-   "title": "中国人民银行等八部门联合印发《关于金融支持服务业扩能提质的指导意见》",
-   "source": "界面新闻",
-   "pool": "官网",
-   "score": 82.0,
-   "signals": {
-    "宣传通稿腔": [
-     "贯彻落实"
-    ],
-    "空泛无数据": [
-     "正文1500字仅6个数字"
-    ]
-   },
-   "signal_count": 2,
-   "strong": false
-  },
-  {
-   "title": "汽车芯片，重新分工？",
+   "title": "特斯拉的Cybercab是发令枪，行业规模化拐点或将2030年到来",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 79.0,
+   "score": 84.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -74,7 +58,20 @@
    "title": "盖世周报 | 广汽拟在欧洲新增产能；武汉奥托立夫技术中心开业",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 78.0,
+   "score": 72.0,
+   "signals": {
+    "营销残留": [
+     "加微信"
+    ]
+   },
+   "signal_count": 1,
+   "strong": true
+  },
+  {
+   "title": "汽车芯片，重新分工？",
+   "source": "盖世汽车社区",
+   "pool": "微信",
+   "score": 71.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -87,35 +84,37 @@
    "title": "路透早报：9月24日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 77.0,
+   "score": 70.0,
    "signals": {},
    "signal_count": 0,
    "strong": true
   },
   {
-   "title": "世赛“炼金术”照亮青年前路：冠军教练谈热门产业赛道",
-   "source": "第一财经",
-   "pool": "官网",
-   "score": 74.0,
+   "title": "闲鱼上的ChatGPT代充暗号，已经进化到我看不懂的程度了。",
+   "source": "数字生命卡兹克",
+   "pool": "微信",
+   "score": 66.0,
    "signals": {
-    "宣传通稿腔": [
-     "圆满落幕"
+    "营销残留": [
+     "加微信"
+    ],
+    "空泛无数据": [
+     "正文1500字仅9个数字"
     ]
    },
-   "signal_count": 1,
+   "signal_count": 2,
    "strong": true
   }
  ],
  "quality_priority_warnings": [],
  "research_topics": [
-  "企业宣传稿 通稿 自动识别 NLP 特征",
   "内容信息密度 评估 指标 信息熵",
   "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 389,
-  "RSS": 1814,
-  "官网": 215
+  "微信": 396,
+  "RSS": 1790,
+  "官网": 206
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
