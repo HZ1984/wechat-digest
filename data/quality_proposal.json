@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-01T02:11:36+08:00",
+ "generated_at": "2026-10-02T02:36:54+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -24,16 +24,23 @@
    "strong": true
   },
   {
-   "title": "路透早报：9月29日",
-   "source": "路透财经早报",
-   "pool": "微信",
-   "score": 96.0,
-   "signals": {},
-   "signal_count": 0,
-   "strong": true
+   "title": "人民日报：在新的伟大征程上接续奋斗再创辉煌",
+   "source": "新京报",
+   "pool": "官网",
+   "score": 94.0,
+   "signals": {
+    "宣传通稿腔": [
+     "凝心聚力"
+    ],
+    "空泛无数据": [
+     "正文1500字仅9个数字"
+    ]
+   },
+   "signal_count": 2,
+   "strong": false
   },
   {
-   "title": "路透早报：9月28日",
+   "title": "路透早报：9月29日",
    "source": "路透财经早报",
    "pool": "微信",
    "score": 90.0,
@@ -42,20 +49,29 @@
    "strong": true
   },
   {
-   "title": "智能全地形开启新路线，神行者8核心零部件配套供应商一览",
-   "source": "盖世汽车社区",
+   "title": "路透早报：9月28日",
+   "source": "路透财经早报",
    "pool": "微信",
-   "score": 84.0,
+   "score": 85.0,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  },
+  {
+   "title": "汽车早报｜江淮汽车称与华为、Stellantis三方确有沟洽合作意向 问界充电权益接入逸安启超充网络",
+   "source": "界面新闻",
+   "pool": "官网",
+   "score": 82.0,
    "signals": {
-    "营销残留": [
-     "加微信"
+    "合集栏目稿": [
+     "命中「汽车早报｜」"
     ]
    },
    "signal_count": 1,
    "strong": true
   },
   {
-   "title": "特斯拉的Cybercab是发令枪，行业规模化拐点或将2030年到来",
+   "title": "智能全地形开启新路线，神行者8核心零部件配套供应商一览",
    "source": "盖世汽车社区",
    "pool": "微信",
    "score": 78.0,
@@ -68,10 +84,10 @@
    "strong": true
   },
   {
-   "title": "盖世周报 | 广汽拟在欧洲新增产能；武汉奥托立夫技术中心开业",
+   "title": "特斯拉的Cybercab是发令枪，行业规模化拐点或将2030年到来",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 67.0,
+   "score": 73.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -81,26 +97,32 @@
    "strong": true
   },
   {
-   "title": "汽车芯片，重新分工？",
-   "source": "盖世汽车社区",
-   "pool": "微信",
-   "score": 64.0,
+   "title": "《金融产品网络营销管理办法》今起正式实施，带来哪些变化？",
+   "source": "21世纪经济报道",
+   "pool": "官网",
+   "score": 67.0,
    "signals": {
     "营销残留": [
      "加微信"
+    ],
+    "空泛无数据": [
+     "正文1483字仅5个数字"
     ]
    },
-   "signal_count": 1,
+   "signal_count": 2,
    "strong": true
   }
  ],
  "quality_priority_warnings": [],
  "research_topics": [
-  "软文 广告 识别 规则 内容平台"
+  "企业宣传稿 通稿 自动识别 NLP 特征",
+  "内容信息密度 评估 指标 信息熵",
+  "软文 广告 识别 规则 内容平台",
+  "newsletter 选题 单篇深度 vs 资讯合集 精读摘要"
  ],
  "pool_sizes": {
-  "微信": 394,
-  "RSS": 1784,
+  "微信": 387,
+  "RSS": 1724,
   "官网": 210
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
