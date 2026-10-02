@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-02T02:36:54+08:00",
+ "generated_at": "2026-10-03T02:06:11+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -11,7 +11,7 @@
  "suspected_false_negatives": [],
  "suspected_false_positives": [
   {
-   "title": "中国汽车创新，凭什么被全球“需要”？",
+   "title": "AI汽车，至今没有标准答案",
    "source": "盖世汽车社区",
    "pool": "微信",
    "score": 100,
@@ -24,32 +24,20 @@
    "strong": true
   },
   {
-   "title": "人民日报：在新的伟大征程上接续奋斗再创辉煌",
-   "source": "新京报",
-   "pool": "官网",
-   "score": 94.0,
+   "title": "中国汽车创新，凭什么被全球“需要”？",
+   "source": "盖世汽车社区",
+   "pool": "微信",
+   "score": 96.0,
    "signals": {
-    "宣传通稿腔": [
-     "凝心聚力"
-    ],
-    "空泛无数据": [
-     "正文1500字仅9个数字"
+    "营销残留": [
+     "加微信"
     ]
    },
-   "signal_count": 2,
-   "strong": false
-  },
-  {
-   "title": "路透早报：9月29日",
-   "source": "路透财经早报",
-   "pool": "微信",
-   "score": 90.0,
-   "signals": {},
-   "signal_count": 0,
+   "signal_count": 1,
    "strong": true
   },
   {
-   "title": "路透早报：9月28日",
+   "title": "路透早报：9月29日",
    "source": "路透财经早报",
    "pool": "微信",
    "score": 85.0,
@@ -71,20 +59,16 @@
    "strong": true
   },
   {
-   "title": "智能全地形开启新路线，神行者8核心零部件配套供应商一览",
-   "source": "盖世汽车社区",
+   "title": "路透早报：9月28日",
+   "source": "路透财经早报",
    "pool": "微信",
-   "score": 78.0,
-   "signals": {
-    "营销残留": [
-     "加微信"
-    ]
-   },
-   "signal_count": 1,
+   "score": 77.0,
+   "signals": {},
+   "signal_count": 0,
    "strong": true
   },
   {
-   "title": "特斯拉的Cybercab是发令枪，行业规模化拐点或将2030年到来",
+   "title": "智能全地形开启新路线，神行者8核心零部件配套供应商一览",
    "source": "盖世汽车社区",
    "pool": "微信",
    "score": 73.0,
@@ -97,33 +81,28 @@
    "strong": true
   },
   {
-   "title": "《金融产品网络营销管理办法》今起正式实施，带来哪些变化？",
-   "source": "21世纪经济报道",
-   "pool": "官网",
-   "score": 67.0,
+   "title": "特斯拉的Cybercab是发令枪，行业规模化拐点或将2030年到来",
+   "source": "盖世汽车社区",
+   "pool": "微信",
+   "score": 65.0,
    "signals": {
     "营销残留": [
      "加微信"
-    ],
-    "空泛无数据": [
-     "正文1483字仅5个数字"
     ]
    },
-   "signal_count": 2,
+   "signal_count": 1,
    "strong": true
   }
  ],
  "quality_priority_warnings": [],
  "research_topics": [
-  "企业宣传稿 通稿 自动识别 NLP 特征",
-  "内容信息密度 评估 指标 信息熵",
   "软文 广告 识别 规则 内容平台",
   "newsletter 选题 单篇深度 vs 资讯合集 精读摘要"
  ],
  "pool_sizes": {
-  "微信": 387,
-  "RSS": 1724,
-  "官网": 210
+  "微信": 345,
+  "RSS": 1612,
+  "官网": 211
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
