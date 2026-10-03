@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-03T02:06:11+08:00",
+ "generated_at": "2026-10-04T00:50:03+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -14,19 +14,6 @@
    "title": "AI汽车，至今没有标准答案",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 100,
-   "signals": {
-    "营销残留": [
-     "加微信"
-    ]
-   },
-   "signal_count": 1,
-   "strong": true
-  },
-  {
-   "title": "中国汽车创新，凭什么被全球“需要”？",
-   "source": "盖世汽车社区",
-   "pool": "微信",
    "score": 96.0,
    "signals": {
     "营销残留": [
@@ -37,7 +24,29 @@
    "strong": true
   },
   {
-   "title": "路透早报：9月29日",
+   "title": "Edge AI Daily 早报（10月3日）",
+   "source": "钛媒体",
+   "pool": "官网",
+   "score": 94.0,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  },
+  {
+   "title": "中国汽车创新，凭什么被全球“需要”？",
+   "source": "盖世汽车社区",
+   "pool": "微信",
+   "score": 91.0,
+   "signals": {
+    "营销残留": [
+     "加微信"
+    ]
+   },
+   "signal_count": 1,
+   "strong": true
+  },
+  {
+   "title": "路透早报：9月30日",
    "source": "路透财经早报",
    "pool": "微信",
    "score": 85.0,
@@ -59,7 +68,7 @@
    "strong": true
   },
   {
-   "title": "路透早报：9月28日",
+   "title": "路透早报：9月29日",
    "source": "路透财经早报",
    "pool": "微信",
    "score": 77.0,
@@ -68,20 +77,16 @@
    "strong": true
   },
   {
-   "title": "智能全地形开启新路线，神行者8核心零部件配套供应商一览",
-   "source": "盖世汽车社区",
+   "title": "路透早报：9月28日",
+   "source": "路透财经早报",
    "pool": "微信",
-   "score": 73.0,
-   "signals": {
-    "营销残留": [
-     "加微信"
-    ]
-   },
-   "signal_count": 1,
+   "score": 70.0,
+   "signals": {},
+   "signal_count": 0,
    "strong": true
   },
   {
-   "title": "特斯拉的Cybercab是发令枪，行业规模化拐点或将2030年到来",
+   "title": "智能全地形开启新路线，神行者8核心零部件配套供应商一览",
    "source": "盖世汽车社区",
    "pool": "微信",
    "score": 65.0,
@@ -100,8 +105,8 @@
   "newsletter 选题 单篇深度 vs 资讯合集 精读摘要"
  ],
  "pool_sizes": {
-  "微信": 345,
-  "RSS": 1612,
+  "微信": 392,
+  "RSS": 1469,
   "官网": 211
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
