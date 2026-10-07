@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-07T02:40:59+08:00",
+ "generated_at": "2026-10-08T03:07:22+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -11,16 +11,25 @@
  "suspected_false_negatives": [],
  "suspected_false_positives": [
   {
-   "title": "召回1.21亿辆次之后，智能汽车的“安全债”该还了",
+   "title": "中国汽车，下一步靠什么持续向上｜2026泰达论坛",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 96.0,
+   "score": 100,
    "signals": {
     "营销残留": [
      "加微信"
     ]
    },
    "signal_count": 1,
+   "strong": true
+  },
+  {
+   "title": "Edge AI Daily 早报（10月7日）",
+   "source": "钛媒体",
+   "pool": "官网",
+   "score": 94.0,
+   "signals": {},
+   "signal_count": 0,
    "strong": true
   },
   {
@@ -33,16 +42,20 @@
    "strong": true
   },
   {
-   "title": "Edge AI Daily 早报（10月5日）",
-   "source": "钛媒体",
-   "pool": "官网",
+   "title": "召回1.21亿辆次之后，智能汽车的“安全债”该还了",
+   "source": "盖世汽车社区",
+   "pool": "微信",
    "score": 90.0,
-   "signals": {},
-   "signal_count": 0,
+   "signals": {
+    "营销残留": [
+     "加微信"
+    ]
+   },
+   "signal_count": 1,
    "strong": true
   },
   {
-   "title": "Edge AI Daily 早报（10月4日）",
+   "title": "Edge AI Daily 早报（10月5日）",
    "source": "钛媒体",
    "pool": "官网",
    "score": 86.0,
@@ -54,7 +67,7 @@
    "title": "盖世周报 | 吉利入股蔚来能源；华为与赛力斯敲定新五年合作",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 78.0,
+   "score": 73.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -67,7 +80,7 @@
    "title": "AI汽车，至今没有标准答案",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 77.0,
+   "score": 70.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -96,9 +109,9 @@
   "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 337,
-  "RSS": 1353,
-  "官网": 212
+  "微信": 329,
+  "RSS": 1350,
+  "官网": 211
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
