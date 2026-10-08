@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-08T03:07:22+08:00",
+ "generated_at": "2026-10-09T03:03:31+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -24,7 +24,16 @@
    "strong": true
   },
   {
-   "title": "Edge AI Daily 早报（10月7日）",
+   "title": "路透早报：10月8日",
+   "source": "路透财经早报",
+   "pool": "微信",
+   "score": 100,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  },
+  {
+   "title": "Edge AI Daily 早报（10月8日）",
    "source": "钛媒体",
    "pool": "官网",
    "score": 94.0,
@@ -33,70 +42,39 @@
    "strong": true
   },
   {
-   "title": "Edge AI Daily 早报（10月6日）",
-   "source": "钛媒体",
-   "pool": "官网",
-   "score": 94.0,
-   "signals": {},
-   "signal_count": 0,
+   "title": "车企的供应链制衡术：一边签“宁王”，一边养“备胎”",
+   "source": "盖世汽车社区",
+   "pool": "微信",
+   "score": 92.0,
+   "signals": {
+    "营销残留": [
+     "加微信"
+    ]
+   },
+   "signal_count": 1,
    "strong": true
   },
   {
    "title": "召回1.21亿辆次之后，智能汽车的“安全债”该还了",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 90.0,
+   "score": 85.0,
    "signals": {
     "营销残留": [
      "加微信"
     ]
    },
    "signal_count": 1,
-   "strong": true
-  },
-  {
-   "title": "Edge AI Daily 早报（10月5日）",
-   "source": "钛媒体",
-   "pool": "官网",
-   "score": 86.0,
-   "signals": {},
-   "signal_count": 0,
    "strong": true
   },
   {
    "title": "盖世周报 | 吉利入股蔚来能源；华为与赛力斯敲定新五年合作",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 73.0,
+   "score": 65.0,
    "signals": {
     "营销残留": [
      "加微信"
-    ]
-   },
-   "signal_count": 1,
-   "strong": true
-  },
-  {
-   "title": "AI汽车，至今没有标准答案",
-   "source": "盖世汽车社区",
-   "pool": "微信",
-   "score": 70.0,
-   "signals": {
-    "营销残留": [
-     "加微信"
-    ]
-   },
-   "signal_count": 1,
-   "strong": true
-  },
-  {
-   "title": "国庆打卡：看晚霞听电音，工业遗存复兴岛又“潮”出圈",
-   "source": "21世纪经济报道",
-   "pool": "官网",
-   "score": 55.0,
-   "signals": {
-    "宣传通稿腔": [
-     "圆满落幕"
     ]
    },
    "signal_count": 1,
@@ -105,13 +83,12 @@
  ],
  "quality_priority_warnings": [],
  "research_topics": [
-  "企业宣传稿 通稿 自动识别 NLP 特征",
   "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 329,
-  "RSS": 1350,
-  "官网": 211
+  "微信": 320,
+  "RSS": 1377,
+  "官网": 191
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
