@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-10T02:34:16+08:00",
+ "generated_at": "2026-10-11T01:30:44+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -14,7 +14,7 @@
    "title": "路透早报：10月9日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 100,
+   "score": 96.0,
    "signals": {},
    "signal_count": 0,
    "strong": true
@@ -23,7 +23,16 @@
    "title": "路透早报：10月8日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 100,
+   "score": 96.0,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  },
+  {
+   "title": "Edge AI Daily 早报（10月10日）",
+   "source": "钛媒体",
+   "pool": "官网",
+   "score": 94.0,
    "signals": {},
    "signal_count": 0,
    "strong": true
@@ -32,7 +41,7 @@
    "title": "中国汽车，下一步靠什么持续向上｜2026泰达论坛",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 96.0,
+   "score": 91.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -45,7 +54,7 @@
    "title": "车上冰箱只用5%，新能源配置堆砌该停了",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 94.0,
+   "score": 88.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -58,7 +67,7 @@
    "title": "车企的供应链制衡术：一边签“宁王”，一边养“备胎”",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 86.0,
+   "score": 80.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -66,25 +75,28 @@
    },
    "signal_count": 1,
    "strong": true
+  },
+  {
+   "title": "“返工第一场调休，我被“不烧心文学”拯救了”",
+   "source": "虎嗅APP",
+   "pool": "RSS",
+   "score": 74.0,
+   "signals": {
+    "营销残留": [
+     "优惠券"
+    ],
+    "空泛无数据": [
+     "正文1500字仅0个数字"
+    ]
+   },
+   "signal_count": 2,
+   "strong": false
   },
   {
    "title": "召回1.21亿辆次之后，智能汽车的“安全债”该还了",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 77.0,
-   "signals": {
-    "营销残留": [
-     "加微信"
-    ]
-   },
-   "signal_count": 1,
-   "strong": true
-  },
-  {
-   "title": "盖世周报 | 吉利入股蔚来能源；华为与赛力斯敲定新五年合作",
-   "source": "盖世汽车社区",
-   "pool": "微信",
-   "score": 58.0,
+   "score": 70.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -96,12 +108,13 @@
  ],
  "quality_priority_warnings": [],
  "research_topics": [
+  "内容信息密度 评估 指标 信息熵",
   "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 334,
-  "RSS": 1416,
-  "官网": 278
+  "微信": 324,
+  "RSS": 1464,
+  "官网": 213
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
