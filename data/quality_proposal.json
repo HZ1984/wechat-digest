@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-15T01:40:08+08:00",
+ "generated_at": "2026-10-16T01:27:05+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -8,61 +8,61 @@
   "failed": [],
   "pass_rate": 100.0
  },
- "suspected_false_negatives": [],
+ "suspected_false_negatives": [
+  {
+   "title": "中国期刊 Vita 加入顶刊之争 | OpenAI 狂掷数学论文 | 霸王龙不冷血 | 自然每周简报",
+   "source": "自然系列",
+   "pool": "微信",
+   "length": 3339,
+   "score": 92.0,
+   "reasons": [
+    "正文 3339 字",
+    "时效+14(1天前)",
+    "命中兴趣: ai、科技"
+   ]
+  }
+ ],
  "suspected_false_positives": [
   {
-   "title": "“中本贯通不是把中职办成升学班”，中高职院校负责人谈职业教育",
-   "source": "澎湃新闻",
-   "pool": "官网",
+   "title": "C Talk | Elektrobit倪耀程：Right-sized SDV，让每一笔软件投入恰到好处",
+   "source": "盖世汽车社区",
+   "pool": "微信",
    "score": 94.0,
    "signals": {
-    "宣传通稿腔": [
-     "圆满落幕"
+    "营销残留": [
+     "加微信"
     ]
    },
    "signal_count": 1,
+   "strong": true
+  },
+  {
+   "title": "Edge AI Daily 早报（10月15日）",
+   "source": "钛媒体",
+   "pool": "官网",
+   "score": 94.0,
+   "signals": {},
+   "signal_count": 0,
    "strong": true
   },
   {
    "title": "电车“大床房”，真需求还是发布会表演？",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 82.0,
+   "score": 76.0,
    "signals": {
     "营销残留": [
      "加微信"
     ]
    },
    "signal_count": 1,
-   "strong": true
-  },
-  {
-   "title": "路透早报：10月9日",
-   "source": "路透财经早报",
-   "pool": "微信",
-   "score": 70.0,
-   "signals": {},
-   "signal_count": 0,
    "strong": true
   },
   {
    "title": "盖世周报 | 立讯精密100%控股京西智行；佛瑞亚海拉斩获两大订单",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 67.0,
-   "signals": {
-    "营销残留": [
-     "加微信"
-    ]
-   },
-   "signal_count": 1,
-   "strong": true
-  },
-  {
-   "title": "车上冰箱只用5%，新能源配置堆砌该停了",
-   "source": "盖世汽车社区",
-   "pool": "微信",
-   "score": 62.0,
+   "score": 59.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -74,13 +74,13 @@
  ],
  "quality_priority_warnings": [],
  "research_topics": [
-  "企业宣传稿 通稿 自动识别 NLP 特征",
+  "低信息密度内容 误杀 判定 阈值 内容策展",
   "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 344,
-  "RSS": 1864,
-  "官网": 190
+  "微信": 362,
+  "RSS": 1940,
+  "官网": 205
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
