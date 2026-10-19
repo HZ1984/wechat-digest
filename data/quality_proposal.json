@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-19T00:11:52+08:00",
+ "generated_at": "2026-10-20T02:52:59+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -14,26 +14,26 @@
    "source": "自然系列",
    "pool": "微信",
    "length": 3339,
-   "score": 73.0,
+   "score": 66.0,
    "reasons": [
     "正文 3339 字",
-    "时效-5(4天前, 偏旧)",
+    "时效-12(5天前, 偏旧)",
     "命中兴趣: ai、科技"
    ]
   }
  ],
  "suspected_false_positives": [
   {
-   "title": "路透早报：10月16日",
+   "title": "路透早报：10月19日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 90.0,
+   "score": 100,
    "signals": {},
    "signal_count": 0,
    "strong": true
   },
   {
-   "title": "Edge AI Daily 早报（10月18日）",
+   "title": "Edge AI Daily 早报（10月19日）",
    "source": "钛媒体",
    "pool": "官网",
    "score": 86.0,
@@ -42,10 +42,35 @@
    "strong": true
   },
   {
-   "title": "C Talk | Elektrobit倪耀程：Right-sized SDV，让每一笔软件投入恰到好处",
+   "title": "路透早报：10月16日",
+   "source": "路透财经早报",
+   "pool": "微信",
+   "score": 85.0,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  },
+  {
+   "title": "支持和推动三区域打造科技金融协同发展高地 多部门出台重磅文件",
+   "source": "21世纪经济报道",
+   "pool": "官网",
+   "score": 72.0,
+   "signals": {
+    "宣传通稿腔": [
+     "贯彻落实"
+    ],
+    "空泛无数据": [
+     "正文1500字仅8个数字"
+    ]
+   },
+   "signal_count": 2,
+   "strong": false
+  },
+  {
+   "title": "2026年1-8月智能座舱供应商装机量排行榜：HUD迈入规模普及与价值升级新阶段丨盖世汽车研究院",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 77.0,
+   "score": 71.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -55,10 +80,10 @@
    "strong": true
   },
   {
-   "title": "2026年1-8月智能座舱供应商装机量排行榜：HUD迈入规模普及与价值升级新阶段丨盖世汽车研究院",
+   "title": "C Talk | Elektrobit倪耀程：Right-sized SDV，让每一笔软件投入恰到好处",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 76.0,
+   "score": 69.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -71,7 +96,7 @@
    "title": "人人都在谈Agent，谁愿意把事情交给它？",
    "source": "虎嗅APP",
    "pool": "RSS",
-   "score": 74.0,
+   "score": 68.0,
    "signals": {
     "营销残留": [
      "优惠券"
@@ -82,31 +107,19 @@
    },
    "signal_count": 2,
    "strong": false
-  },
-  {
-   "title": "电车“大床房”，真需求还是发布会表演？",
-   "source": "盖世汽车社区",
-   "pool": "微信",
-   "score": 57.0,
-   "signals": {
-    "营销残留": [
-     "加微信"
-    ]
-   },
-   "signal_count": 1,
-   "strong": true
   }
  ],
  "quality_priority_warnings": [],
  "research_topics": [
   "低信息密度内容 误杀 判定 阈值 内容策展",
+  "企业宣传稿 通稿 自动识别 NLP 特征",
   "内容信息密度 评估 指标 信息熵",
   "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 372,
-  "RSS": 2057,
-  "官网": 207
+  "微信": 342,
+  "RSS": 2091,
+  "官网": 202
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
