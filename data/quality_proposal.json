@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-21T01:36:42+08:00",
+ "generated_at": "2026-10-22T01:44:15+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -11,6 +11,15 @@
  "suspected_false_negatives": [],
  "suspected_false_positives": [
   {
+   "title": "路透早报：10月21日",
+   "source": "路透财经早报",
+   "pool": "微信",
+   "score": 100,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  },
+  {
    "title": "路透早报：10月20日",
    "source": "路透财经早报",
    "pool": "微信",
@@ -20,10 +29,19 @@
    "strong": true
   },
   {
+   "title": "Edge AI Daily 早报（10月21日）",
+   "source": "钛媒体",
+   "pool": "官网",
+   "score": 94.0,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  },
+  {
    "title": "路透早报：10月19日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 98.0,
+   "score": 92.0,
    "signals": {},
    "signal_count": 0,
    "strong": true
@@ -32,29 +50,16 @@
    "title": "路透早报：10月16日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 77.0,
+   "score": 70.0,
    "signals": {},
    "signal_count": 0,
-   "strong": true
-  },
-  {
-   "title": "2026年1-8月智能座舱供应商装机量排行榜：HUD迈入规模普及与价值升级新阶段丨盖世汽车研究院",
-   "source": "盖世汽车社区",
-   "pool": "微信",
-   "score": 63.0,
-   "signals": {
-    "营销残留": [
-     "加微信"
-    ]
-   },
-   "signal_count": 1,
    "strong": true
   },
   {
    "title": "人人都在谈Agent，谁愿意把事情交给它？",
    "source": "虎嗅APP",
    "pool": "RSS",
-   "score": 62.0,
+   "score": 57.0,
    "signals": {
     "营销残留": [
      "优惠券"
@@ -67,10 +72,10 @@
    "strong": false
   },
   {
-   "title": "C Talk | Elektrobit倪耀程：Right-sized SDV，让每一笔软件投入恰到好处",
+   "title": "2026年1-8月智能座舱供应商装机量排行榜：HUD迈入规模普及与价值升级新阶段丨盖世汽车研究院",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 62.0,
+   "score": 56.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -86,9 +91,9 @@
   "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 305,
-  "RSS": 2156,
-  "官网": 211
+  "微信": 302,
+  "RSS": 2301,
+  "官网": 208
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
