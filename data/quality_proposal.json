@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-22T01:44:15+08:00",
+ "generated_at": "2026-10-23T01:43:11+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -11,12 +11,16 @@
  "suspected_false_negatives": [],
  "suspected_false_positives": [
   {
-   "title": "路透早报：10月21日",
+   "title": "路透早报：10月22日",
    "source": "路透财经早报",
    "pool": "微信",
    "score": 100,
-   "signals": {},
-   "signal_count": 0,
+   "signals": {
+    "空泛无数据": [
+     "正文1500字仅6个数字"
+    ]
+   },
+   "signal_count": 1,
    "strong": true
   },
   {
@@ -29,10 +33,10 @@
    "strong": true
   },
   {
-   "title": "Edge AI Daily 早报（10月21日）",
-   "source": "钛媒体",
-   "pool": "官网",
-   "score": 94.0,
+   "title": "路透早报：10月21日",
+   "source": "路透财经早报",
+   "pool": "微信",
+   "score": 96.0,
    "signals": {},
    "signal_count": 0,
    "strong": true
@@ -41,59 +45,20 @@
    "title": "路透早报：10月19日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 92.0,
+   "score": 87.0,
    "signals": {},
    "signal_count": 0,
-   "strong": true
-  },
-  {
-   "title": "路透早报：10月16日",
-   "source": "路透财经早报",
-   "pool": "微信",
-   "score": 70.0,
-   "signals": {},
-   "signal_count": 0,
-   "strong": true
-  },
-  {
-   "title": "人人都在谈Agent，谁愿意把事情交给它？",
-   "source": "虎嗅APP",
-   "pool": "RSS",
-   "score": 57.0,
-   "signals": {
-    "营销残留": [
-     "优惠券"
-    ],
-    "空泛无数据": [
-     "正文1500字仅4个数字"
-    ]
-   },
-   "signal_count": 2,
-   "strong": false
-  },
-  {
-   "title": "2026年1-8月智能座舱供应商装机量排行榜：HUD迈入规模普及与价值升级新阶段丨盖世汽车研究院",
-   "source": "盖世汽车社区",
-   "pool": "微信",
-   "score": 56.0,
-   "signals": {
-    "营销残留": [
-     "加微信"
-    ]
-   },
-   "signal_count": 1,
    "strong": true
   }
  ],
  "quality_priority_warnings": [],
  "research_topics": [
-  "内容信息密度 评估 指标 信息熵",
-  "软文 广告 识别 规则 内容平台"
+  "内容信息密度 评估 指标 信息熵"
  ],
  "pool_sizes": {
-  "微信": 302,
-  "RSS": 2301,
-  "官网": 208
+  "微信": 305,
+  "RSS": 2246,
+  "官网": 214
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
