@@ -1,18 +1,18 @@
 {
- "run_date": "2026-10-23",
- "checked_at": "2026-10-23T01:43:10+08:00",
+ "run_date": "2026-10-24",
+ "checked_at": "2026-10-24T01:33:49+08:00",
  "deferred": false,
- "hours_since_werss_sync": 5.6,
+ "hours_since_werss_sync": 3.8,
  "issues": [],
  "actions": [],
  "pools": {
   "werss": {
    "present": true,
    "rel": "data/werss_articles.json",
-   "exported_at": "2026-10-22 20:05",
-   "age_h": 5.6,
-   "count": 305,
-   "with_content": 305,
+   "exported_at": "2026-10-23 21:44",
+   "age_h": 3.8,
+   "count": 309,
+   "with_content": 309,
    "content_ratio": 1.0,
    "latest_pub_str": "—",
    "n_sources": 59
@@ -20,22 +20,22 @@
   "rss": {
    "present": true,
    "rel": "data/rss_articles.json",
-   "exported_at": "2026-10-23 01:11",
-   "age_h": 0.5,
-   "count": 2246,
-   "with_content": 1663,
-   "content_ratio": 0.7404274265360641,
+   "exported_at": "2026-10-23 21:28",
+   "age_h": 4.1,
+   "count": 2258,
+   "with_content": 1673,
+   "content_ratio": 0.7409211691762622,
    "latest_pub_str": "—",
    "n_sources": 4
   },
   "web": {
    "present": true,
    "rel": "data/web_articles.json",
-   "exported_at": "2026-10-22 22:31",
-   "age_h": 3.2,
-   "count": 214,
-   "with_content": 208,
-   "content_ratio": 0.9719626168224299,
+   "exported_at": "2026-10-23 22:31",
+   "age_h": 3.0,
+   "count": 211,
+   "with_content": 205,
+   "content_ratio": 0.9715639810426541,
    "latest_pub_str": "—",
    "n_sources": 12
   }
