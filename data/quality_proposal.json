@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-24T01:33:50+08:00",
+ "generated_at": "2026-10-25T00:19:34+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -24,10 +24,58 @@
    "strong": true
   },
   {
+   "title": "AI早报 | OpenAI据报正洽谈最高300亿美元融资；SpaceX推出超级智能合作伙伴网络",
+   "source": "界面新闻",
+   "pool": "官网",
+   "score": 94.0,
+   "signals": {
+    "合集栏目稿": [
+     "命中「AI早报 |」"
+    ]
+   },
+   "signal_count": 1,
+   "strong": true
+  },
+  {
+   "title": "科技早报 | iPhone Duo开售首日黄牛溢价下跌；黄仁勋：没有哪个国家在制造业方面比中国更强",
+   "source": "界面新闻",
+   "pool": "官网",
+   "score": 94.0,
+   "signals": {
+    "合集栏目稿": [
+     "命中「科技早报 |」"
+    ]
+   },
+   "signal_count": 1,
+   "strong": true
+  },
+  {
+   "title": "汽车早报｜1-9月中国汽车出口863万辆 沃尔沃汽车计划全球裁减约2500个岗位",
+   "source": "界面新闻",
+   "pool": "官网",
+   "score": 94.0,
+   "signals": {
+    "合集栏目稿": [
+     "命中「汽车早报｜」"
+    ]
+   },
+   "signal_count": 1,
+   "strong": true
+  },
+  {
+   "title": "Edge AI Daily 早报（10月24日）",
+   "source": "钛媒体",
+   "pool": "官网",
+   "score": 90.0,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  },
+  {
    "title": "路透早报：10月20日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 97.0,
+   "score": 89.0,
    "signals": {},
    "signal_count": 0,
    "strong": true
@@ -36,29 +84,35 @@
    "title": "路透早报：10月21日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 90.0,
+   "score": 85.0,
    "signals": {},
    "signal_count": 0,
    "strong": true
   },
   {
-   "title": "路透早报：10月19日",
-   "source": "路透财经早报",
-   "pool": "微信",
-   "score": 79.0,
-   "signals": {},
-   "signal_count": 0,
+   "title": "21调查｜英伟达停产传闻搅动华强北，显卡一日一价，炒至6万元",
+   "source": "21世纪经济报道",
+   "pool": "官网",
+   "score": 82.0,
+   "signals": {
+    "营销残留": [
+     "加微信"
+    ]
+   },
+   "signal_count": 1,
    "strong": true
   }
  ],
  "quality_priority_warnings": [],
  "research_topics": [
-  "内容信息密度 评估 指标 信息熵"
+  "内容信息密度 评估 指标 信息熵",
+  "软文 广告 识别 规则 内容平台",
+  "newsletter 选题 单篇深度 vs 资讯合集 精读摘要"
  ],
  "pool_sizes": {
-  "微信": 309,
-  "RSS": 2258,
-  "官网": 211
+  "微信": 310,
+  "RSS": 2147,
+  "官网": 210
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
