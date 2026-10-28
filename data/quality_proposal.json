@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-28T02:27:58+08:00",
+ "generated_at": "2026-10-29T02:33:31+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -11,16 +11,20 @@
  "suspected_false_negatives": [],
  "suspected_false_positives": [
   {
-   "title": "路透早报：10月26日",
-   "source": "路透财经早报",
+   "title": "智能座舱渗透率近90%，“标配”之后拼什么？",
+   "source": "盖世汽车社区",
    "pool": "微信",
    "score": 100,
-   "signals": {},
-   "signal_count": 0,
+   "signals": {
+    "营销残留": [
+     "加微信"
+    ]
+   },
+   "signal_count": 1,
    "strong": true
   },
   {
-   "title": "路透早报：10月27日",
+   "title": "路透早报：10月26日",
    "source": "路透财经早报",
    "pool": "微信",
    "score": 96.0,
@@ -29,10 +33,19 @@
    "strong": true
   },
   {
+   "title": "路透早报：10月27日",
+   "source": "路透财经早报",
+   "pool": "微信",
+   "score": 90.0,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  },
+  {
    "title": "汽车创新，越来越难赚到钱了",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 90.0,
+   "score": 84.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -45,7 +58,7 @@
    "title": "杨一帆：推动产业升级  激发创新活力  丰富服务场景——老旧厂区改造提升政策解读丨专家解读",
    "source": "中国房地产报",
    "pool": "微信",
-   "score": 84.0,
+   "score": 78.0,
    "signals": {
     "宣传通稿腔": [
      "贯彻落实"
@@ -56,19 +69,6 @@
    },
    "signal_count": 2,
    "strong": false
-  },
-  {
-   "title": "路透早报：10月22日",
-   "source": "路透财经早报",
-   "pool": "微信",
-   "score": 82.0,
-   "signals": {
-    "空泛无数据": [
-     "正文1500字仅6个数字"
-    ]
-   },
-   "signal_count": 1,
-   "strong": true
   }
  ],
  "quality_priority_warnings": [],
@@ -78,9 +78,9 @@
   "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 282,
-  "RSS": 2106,
-  "官网": 192
+  "微信": 304,
+  "RSS": 2155,
+  "官网": 210
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
