@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-01T01:24:57+08:00",
+ "generated_at": "2026-11-02T02:10:32+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -11,7 +11,7 @@
  "suspected_false_negatives": [],
  "suspected_false_positives": [
   {
-   "title": "Edge AI Daily 早报（10月31日）",
+   "title": "Edge AI Daily 早报（11月1日）",
    "source": "钛媒体",
    "pool": "官网",
    "score": 94.0,
@@ -20,10 +20,23 @@
    "strong": true
   },
   {
+   "title": "盖世周报 | 中国车企欧洲销量首超日系；大众考虑在欧采用中国软件",
+   "source": "盖世汽车社区",
+   "pool": "微信",
+   "score": 90.0,
+   "signals": {
+    "营销残留": [
+     "加微信"
+    ]
+   },
+   "signal_count": 1,
+   "strong": true
+  },
+  {
    "title": "智能座舱渗透率近90%，“标配”之后拼什么？",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 91.0,
+   "score": 83.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -49,45 +62,32 @@
    "strong": false
   },
   {
-   "title": "路透早报：10月26日",
-   "source": "路透财经早报",
-   "pool": "微信",
-   "score": 76.0,
-   "signals": {},
-   "signal_count": 0,
-   "strong": true
-  },
-  {
    "title": "路透早报：10月27日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 71.0,
+   "score": 64.0,
    "signals": {},
    "signal_count": 0,
    "strong": true
   },
   {
-   "title": "中共中央召开党外人士座谈会，习近平主持并发表重要讲话",
-   "source": "南方周末",
+   "title": "丝路风物 | 丝路舶来菜如何霸占你的胃？",
+   "source": "科普中国",
    "pool": "官网",
-   "score": 69.0,
+   "score": 59.0,
    "signals": {
     "宣传通稿腔": [
-     "重要讲话",
-     "深入学习贯彻"
-    ],
-    "空泛无数据": [
-     "正文1500字仅8个数字"
+     "圆满落幕"
     ]
    },
-   "signal_count": 2,
-   "strong": false
+   "signal_count": 1,
+   "strong": true
   },
   {
    "title": "汽车创新，越来越难赚到钱了",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 65.0,
+   "score": 58.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -95,22 +95,6 @@
    },
    "signal_count": 1,
    "strong": true
-  },
-  {
-   "title": "杨一帆：推动产业升级  激发创新活力  丰富服务场景——老旧厂区改造提升政策解读丨专家解读",
-   "source": "中国房地产报",
-   "pool": "微信",
-   "score": 58.0,
-   "signals": {
-    "宣传通稿腔": [
-     "贯彻落实"
-    ],
-    "空泛无数据": [
-     "正文1500字仅10个数字"
-    ]
-   },
-   "signal_count": 2,
-   "strong": false
   }
  ],
  "quality_priority_warnings": [],
@@ -120,8 +104,8 @@
   "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 316,
-  "RSS": 1940,
+  "微信": 327,
+  "RSS": 1801,
   "官网": 216
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
