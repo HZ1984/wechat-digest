@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-03T05:59:21+08:00",
+ "generated_at": "2026-11-04T03:52:55+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -8,7 +8,20 @@
   "failed": [],
   "pass_rate": 100.0
  },
- "suspected_false_negatives": [],
+ "suspected_false_negatives": [
+  {
+   "title": "国考人数七年来首次下降，年轻人不再想要“编制”了？",
+   "source": "财经杂志",
+   "pool": "微信",
+   "length": 4652,
+   "score": 86.0,
+   "reasons": [
+    "正文 4652 字，篇幅可观",
+    "时效+14(1天前)",
+    "命中兴趣: 财经、政策"
+   ]
+  }
+ ],
  "suspected_false_positives": [
   {
    "title": "中国方案向全球，供应链递交“中国答卷” ｜2026金辑奖中国汽车新供应链百强榜",
@@ -24,32 +37,35 @@
    "strong": true
   },
   {
-   "title": "Edge AI Daily 早报（11月2日）",
-   "source": "钛媒体",
-   "pool": "官网",
-   "score": 90.0,
+   "title": "路透早报：11月3日",
+   "source": "路透财经早报",
+   "pool": "微信",
+   "score": 100,
    "signals": {},
    "signal_count": 0,
    "strong": true
   },
   {
+   "title": "坚定信心、保持定力持之以恒推进全面从严治党（学习贯彻党的二十届五中全会精神①）",
+   "source": "海关发布",
+   "pool": "微信",
+   "score": 86.0,
+   "signals": {
+    "宣传通稿腔": [
+     "高度评价"
+    ],
+    "空泛无数据": [
+     "正文1500字仅3个数字"
+    ]
+   },
+   "signal_count": 2,
+   "strong": false
+  },
+  {
    "title": "盖世周报 | 中国车企欧洲销量首超日系；大众考虑在欧采用中国软件",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 84.0,
-   "signals": {
-    "营销残留": [
-     "加微信"
-    ]
-   },
-   "signal_count": 1,
-   "strong": true
-  },
-  {
-   "title": "智能座舱渗透率近90%，“标配”之后拼什么？",
-   "source": "盖世汽车社区",
-   "pool": "微信",
-   "score": 76.0,
+   "score": 78.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -61,13 +77,15 @@
  ],
  "quality_priority_warnings": [],
  "research_topics": [
+  "低信息密度内容 误杀 判定 阈值 内容策展",
   "企业宣传稿 通稿 自动识别 NLP 特征",
+  "内容信息密度 评估 指标 信息熵",
   "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 361,
-  "RSS": 1786,
-  "官网": 215
+  "微信": 355,
+  "RSS": 1799,
+  "官网": 211
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
