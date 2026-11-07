@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-07T03:44:54+08:00",
+ "generated_at": "2026-11-08T01:53:40+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -14,10 +14,10 @@
    "source": "自然系列",
    "pool": "微信",
    "length": 2922,
-   "score": 70.0,
+   "score": 65.0,
    "reasons": [
     "正文 2922 字",
-    "时效+8(2天前)",
+    "时效+3(3天前)",
     "命中兴趣: 投资"
    ]
   },
@@ -26,20 +26,29 @@
    "source": "财经杂志",
    "pool": "微信",
    "length": 4652,
-   "score": 67.0,
+   "score": 60.0,
    "reasons": [
     "正文 4652 字，篇幅可观",
-    "时效-5(4天前, 偏旧)",
+    "时效-12(5天前, 偏旧)",
     "命中兴趣: 财经、政策"
    ]
   }
  ],
  "suspected_false_positives": [
   {
+   "title": "Edge AI Daily 早报（11月7日）",
+   "source": "钛媒体",
+   "pool": "官网",
+   "score": 94.0,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  },
+  {
    "title": "路透早报：11月3日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 91.0,
+   "score": 83.0,
    "signals": {},
    "signal_count": 0,
    "strong": true
@@ -48,7 +57,7 @@
    "title": "中国方案向全球，供应链递交“中国答卷” ｜2026金辑奖中国汽车新供应链百强榜",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 89.0,
+   "score": 82.0,
    "signals": {
     "宣传通稿腔": [
      "圆满落幕"
@@ -58,19 +67,10 @@
    "strong": true
   },
   {
-   "title": "Edge AI Daily 早报（11月6日）",
-   "source": "钛媒体",
-   "pool": "官网",
-   "score": 79.0,
-   "signals": {},
-   "signal_count": 0,
-   "strong": true
-  },
-  {
    "title": "何立峰在北京调研时指出，强化科技创新与产业创新深度融合，推动经济持续向新向优向好发展",
    "source": "36氪",
    "pool": "RSS",
-   "score": 73.0,
+   "score": 67.0,
    "signals": {
     "宣传通稿腔": [
      "重要讲话",
@@ -87,7 +87,7 @@
    "title": "坚定信心、保持定力持之以恒推进全面从严治党（学习贯彻党的二十届五中全会精神①）",
    "source": "海关发布",
    "pool": "微信",
-   "score": 67.0,
+   "score": 60.0,
    "signals": {
     "宣传通稿腔": [
      "高度评价"
@@ -103,7 +103,7 @@
    "title": "体系出海下半场：中国车企还需要一条数据供应链 ​",
    "source": "盖世汽车社区",
    "pool": "微信",
-   "score": 64.0,
+   "score": 58.0,
    "signals": {
     "营销残留": [
      "加微信"
@@ -113,19 +113,6 @@
     ]
    },
    "signal_count": 2,
-   "strong": true
-  },
-  {
-   "title": "盖世周报 | 中国车企欧洲销量首超日系；大众考虑在欧采用中国软件",
-   "source": "盖世汽车社区",
-   "pool": "微信",
-   "score": 58.0,
-   "signals": {
-    "营销残留": [
-     "加微信"
-    ]
-   },
-   "signal_count": 1,
    "strong": true
   }
  ],
@@ -137,9 +124,9 @@
   "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 374,
-  "RSS": 1720,
-  "官网": 207
+  "微信": 385,
+  "RSS": 1636,
+  "官网": 208
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
