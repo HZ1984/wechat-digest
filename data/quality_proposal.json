@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-09T02:08:11+08:00",
+ "generated_at": "2026-11-10T06:46:31+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -14,10 +14,10 @@
    "source": "自然系列",
    "pool": "微信",
    "length": 2922,
-   "score": 57.0,
+   "score": 50.0,
    "reasons": [
     "正文 2922 字",
-    "时效-5(4天前, 偏旧)",
+    "时效-12(5天前, 偏旧)",
     "命中兴趣: 投资"
    ]
   }
@@ -37,61 +37,38 @@
    "strong": true
   },
   {
-   "title": "Edge AI Daily 早报（11月8日）",
-   "source": "钛媒体",
-   "pool": "官网",
-   "score": 94.0,
-   "signals": {},
-   "signal_count": 0,
-   "strong": true
-  },
-  {
-   "title": "Edge AI Daily 早报（11月7日）",
-   "source": "钛媒体",
-   "pool": "官网",
-   "score": 94.0,
-   "signals": {},
-   "signal_count": 0,
-   "strong": true
-  },
-  {
-   "title": "路透早报：11月3日",
+   "title": "路透早报：11月9日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 76.0,
+   "score": 100,
    "signals": {},
    "signal_count": 0,
    "strong": true
   },
   {
-   "title": "何立峰在北京调研时指出，强化科技创新与产业创新深度融合，推动经济持续向新向优向好发展",
-   "source": "36氪",
-   "pool": "RSS",
-   "score": 62.0,
+   "title": "2026年前三季度ADAS供应商装机量排行榜：激光雷达本土供应商前四占比超95%丨盖世汽车研究院",
+   "source": "盖世汽车社区",
+   "pool": "微信",
+   "score": 88.0,
    "signals": {
-    "宣传通稿腔": [
-     "重要讲话",
-     "贯彻落实"
-    ],
-    "空泛无数据": [
-     "正文517字仅4个数字"
+    "营销残留": [
+     "加微信"
     ]
    },
-   "signal_count": 2,
-   "strong": false
+   "signal_count": 1,
+   "strong": true
   },
   {
-   "title": "中央组织部负责人就党的二十一大代表选举工作答新华社记者问",
-   "source": "界面新闻",
-   "pool": "官网",
-   "score": 60.0,
+   "title": "为什么广告语都爱八字真言？",
+   "source": "虎嗅APP",
+   "pool": "RSS",
+   "score": 66.0,
    "signals": {
     "宣传通稿腔": [
-     "深入学习贯彻",
-     "贯彻落实"
+     "砥砺前行"
     ],
     "空泛无数据": [
-     "正文1500字仅9个数字"
+     "正文1500字仅6个数字"
     ]
    },
    "signal_count": 2,
@@ -107,8 +84,8 @@
  ],
  "pool_sizes": {
   "微信": 380,
-  "RSS": 1502,
-  "官网": 207
+  "RSS": 1462,
+  "官网": 214
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
