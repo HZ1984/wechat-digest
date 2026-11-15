@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-15T02:34:40+08:00",
+ "generated_at": "2026-11-16T03:10:16+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -14,16 +14,16 @@
    "source": "自然系列",
    "pool": "微信",
    "length": 2877,
-   "score": 61.0,
+   "score": 53.0,
    "reasons": [
     "正文 2877 字",
-    "时效+3(3天前)"
+    "时效-5(4天前, 偏旧)"
    ]
   }
  ],
  "suspected_false_positives": [
   {
-   "title": "Edge AI Daily 早报（11月14日）",
+   "title": "Edge AI Daily 早报（11月15日）",
    "source": "钛媒体",
    "pool": "官网",
    "score": 94.0,
@@ -32,32 +32,26 @@
    "strong": true
   },
   {
-   "title": "科技早报 | 苹果调整以旧换新价格；大疆11月18日起调整Pocket 4等产品售价",
-   "source": "界面新闻",
+   "title": "车主必看！汽车改装新规征求意见，刹车系统、悬架不能随意改了",
+   "source": "新京报",
    "pool": "官网",
-   "score": 89.0,
+   "score": 68.0,
    "signals": {
-    "合集栏目稿": [
-     "命中「科技早报 |」"
+    "标题党": [
+     "必看"
+    ],
+    "空泛无数据": [
+     "正文1500字仅8个数字"
     ]
    },
-   "signal_count": 1,
-   "strong": true
-  },
-  {
-   "title": "路透早报：11月9日",
-   "source": "路透财经早报",
-   "pool": "微信",
-   "score": 76.0,
-   "signals": {},
-   "signal_count": 0,
-   "strong": true
+   "signal_count": 2,
+   "strong": false
   },
   {
    "title": "纪念孙中山先生诞辰160周年大会在京举行 习近平发表重要讲话",
    "source": "中国发展改革",
    "pool": "微信",
-   "score": 71.0,
+   "score": 66.0,
    "signals": {
     "宣传通稿腔": [
      "重要讲话"
@@ -68,35 +62,6 @@
    },
    "signal_count": 2,
    "strong": false
-  },
-  {
-   "title": "年度必看神作，拍透了中年人爱与欲望的暗流？",
-   "source": "三联生活周刊",
-   "pool": "微信",
-   "score": 57.0,
-   "signals": {
-    "标题党": [
-     "必看"
-    ],
-    "空泛无数据": [
-     "正文1500字仅3个数字"
-    ]
-   },
-   "signal_count": 2,
-   "strong": false
-  },
-  {
-   "title": "2026年前三季度ADAS供应商装机量排行榜：激光雷达本土供应商前四占比超95%丨盖世汽车研究院",
-   "source": "盖世汽车社区",
-   "pool": "微信",
-   "score": 56.0,
-   "signals": {
-    "营销残留": [
-     "加微信"
-    ]
-   },
-   "signal_count": 1,
-   "strong": true
   }
  ],
  "quality_priority_warnings": [],
@@ -104,12 +69,11 @@
   "低信息密度内容 误杀 判定 阈值 内容策展",
   "企业宣传稿 通稿 自动识别 NLP 特征",
   "标题党 clickbait 检测 中文 2026",
-  "内容信息密度 评估 指标 信息熵",
-  "软文 广告 识别 规则 内容平台"
+  "内容信息密度 评估 指标 信息熵"
  ],
  "pool_sizes": {
-  "微信": 411,
-  "RSS": 1523,
+  "微信": 409,
+  "RSS": 1424,
   "官网": 211
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
