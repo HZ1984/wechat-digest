@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-17T06:36:47+08:00",
+ "generated_at": "2026-11-18T05:25:38+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -8,19 +8,7 @@
   "failed": [],
   "pass_rate": 100.0
  },
- "suspected_false_negatives": [
-  {
-   "title": "阉割能延长寿命？ | 一场事故后，他成了音乐天才 | 自然每周简报",
-   "source": "自然系列",
-   "pool": "微信",
-   "length": 2877,
-   "score": 46.0,
-   "reasons": [
-    "正文 2877 字",
-    "时效-12(5天前, 偏旧)"
-   ]
-  }
- ],
+ "suspected_false_negatives": [],
  "suspected_false_positives": [
   {
    "title": "路透早报：11月16日",
@@ -30,52 +18,16 @@
    "signals": {},
    "signal_count": 0,
    "strong": true
-  },
-  {
-   "title": "Edge AI Daily 早报（11月16日）",
-   "source": "钛媒体",
-   "pool": "官网",
-   "score": 94.0,
-   "signals": {},
-   "signal_count": 0,
-   "strong": true
-  },
-  {
-   "title": "协同赋能京长双向研学，新京报京彩教育与长沙晚报达成战略合作",
-   "source": "新京报",
-   "pool": "官网",
-   "score": 78.0,
-   "signals": {},
-   "signal_count": 0,
-   "strong": true
-  },
-  {
-   "title": "纪念孙中山先生诞辰160周年大会在京举行 习近平发表重要讲话",
-   "source": "中国发展改革",
-   "pool": "微信",
-   "score": 58.0,
-   "signals": {
-    "宣传通稿腔": [
-     "重要讲话"
-    ],
-    "空泛无数据": [
-     "正文1500字仅11个数字"
-    ]
-   },
-   "signal_count": 2,
-   "strong": false
   }
  ],
  "quality_priority_warnings": [],
  "research_topics": [
-  "低信息密度内容 误杀 判定 阈值 内容策展",
-  "企业宣传稿 通稿 自动识别 NLP 特征",
-  "内容信息密度 评估 指标 信息熵"
+  "内容质量评分 体系 最佳实践 newsletter curation"
  ],
  "pool_sizes": {
-  "微信": 386,
-  "RSS": 1321,
-  "官网": 216
+  "微信": 395,
+  "RSS": 1393,
+  "官网": 214
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
