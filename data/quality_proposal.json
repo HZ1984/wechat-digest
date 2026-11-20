@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-20T05:03:32+08:00",
+ "generated_at": "2026-11-21T04:49:48+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -14,7 +14,7 @@
    "title": "路透早报：11月16日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 91.0,
+   "score": 83.0,
    "signals": {},
    "signal_count": 0,
    "strong": true
@@ -25,9 +25,9 @@
   "内容质量评分 体系 最佳实践 newsletter curation"
  ],
  "pool_sizes": {
-  "微信": 382,
-  "RSS": 1455,
-  "官网": 208
+  "微信": 366,
+  "RSS": 1427,
+  "官网": 198
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
