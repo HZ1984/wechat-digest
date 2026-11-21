@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-21T04:49:48+08:00",
+ "generated_at": "2026-11-22T03:51:46+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -11,10 +11,32 @@
  "suspected_false_negatives": [],
  "suspected_false_positives": [
   {
+   "title": "科技早报 | 黄仁勋或将筹资500亿美元创业；字节回应原抖音CEO张楠、原飞书CEO谢欣离职传闻",
+   "source": "界面新闻",
+   "pool": "官网",
+   "score": 94.0,
+   "signals": {
+    "合集栏目稿": [
+     "命中「科技早报 |」"
+    ]
+   },
+   "signal_count": 1,
+   "strong": true
+  },
+  {
+   "title": "Edge AI Daily 早报（11月21日）",
+   "source": "钛媒体",
+   "pool": "官网",
+   "score": 94.0,
+   "signals": {},
+   "signal_count": 0,
+   "strong": true
+  },
+  {
    "title": "路透早报：11月16日",
    "source": "路透财经早报",
    "pool": "微信",
-   "score": 83.0,
+   "score": 76.0,
    "signals": {},
    "signal_count": 0,
    "strong": true
@@ -22,12 +44,12 @@
  ],
  "quality_priority_warnings": [],
  "research_topics": [
-  "内容质量评分 体系 最佳实践 newsletter curation"
+  "newsletter 选题 单篇深度 vs 资讯合集 精读摘要"
  ],
  "pool_sizes": {
-  "微信": 366,
-  "RSS": 1427,
-  "官网": 198
+  "微信": 350,
+  "RSS": 1347,
+  "官网": 213
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
