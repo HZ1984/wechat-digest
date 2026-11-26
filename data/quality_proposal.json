@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-26T06:01:58+08:00",
+ "generated_at": "2026-11-27T06:00:10+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -14,17 +14,17 @@
    "source": "自然系列",
    "pool": "微信",
    "length": 3235,
-   "score": 100,
+   "score": 96.0,
    "reasons": [
     "正文 3235 字",
-    "时效+20(今天)",
+    "时效+14(1天前)",
     "命中兴趣: ai、人工智能、科技"
    ]
   }
  ],
  "suspected_false_positives": [
   {
-   "title": "Edge AI Daily 早报（11月25日）",
+   "title": "Edge AI Daily 早报（11月26日）",
    "source": "钛媒体",
    "pool": "官网",
    "score": 94.0,
@@ -36,7 +36,7 @@
    "title": "打开豆包，就进抖音",
    "source": "虎嗅APP",
    "pool": "RSS",
-   "score": 66.0,
+   "score": 60.0,
    "signals": {
     "营销残留": [
      "优惠券"
@@ -56,9 +56,9 @@
   "软文 广告 识别 规则 内容平台"
  ],
  "pool_sizes": {
-  "微信": 344,
-  "RSS": 1327,
-  "官网": 214
+  "微信": 349,
+  "RSS": 1372,
+  "官网": 210
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
