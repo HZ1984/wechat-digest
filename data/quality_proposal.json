@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-27T06:00:10+08:00",
+ "generated_at": "2026-11-28T05:43:22+08:00",
  "principle": "质量永远第一, 行业权重第二; 宁缺毋滥。本文件为提案, 不自动应用。",
  "regression": {
   "status": "pass",
@@ -14,35 +14,27 @@
    "source": "自然系列",
    "pool": "微信",
    "length": 3235,
-   "score": 96.0,
+   "score": 90.0,
    "reasons": [
     "正文 3235 字",
-    "时效+14(1天前)",
+    "时效+8(2天前)",
     "命中兴趣: ai、人工智能、科技"
    ]
   }
  ],
  "suspected_false_positives": [
   {
-   "title": "Edge AI Daily 早报（11月26日）",
-   "source": "钛媒体",
+   "title": "中国证监会传达学习贯彻国务院常务会议精神",
+   "source": "21世纪经济报道",
    "pool": "官网",
-   "score": 94.0,
-   "signals": {},
-   "signal_count": 0,
-   "strong": true
-  },
-  {
-   "title": "打开豆包，就进抖音",
-   "source": "虎嗅APP",
-   "pool": "RSS",
-   "score": 60.0,
+   "score": 57.0,
    "signals": {
-    "营销残留": [
-     "优惠券"
+    "宣传通稿腔": [
+     "深入学习贯彻",
+     "贯彻落实"
     ],
     "空泛无数据": [
-     "正文1500字仅4个数字"
+     "正文853字仅4个数字"
     ]
    },
    "signal_count": 2,
@@ -52,13 +44,13 @@
  "quality_priority_warnings": [],
  "research_topics": [
   "低信息密度内容 误杀 判定 阈值 内容策展",
-  "内容信息密度 评估 指标 信息熵",
-  "软文 广告 识别 规则 内容平台"
+  "企业宣传稿 通稿 自动识别 NLP 特征",
+  "内容信息密度 评估 指标 信息熵"
  ],
  "pool_sizes": {
-  "微信": 349,
-  "RSS": 1372,
-  "官网": 210
+  "微信": 338,
+  "RSS": 1324,
+  "官网": 207
  },
  "note": "确认后由 Agent 修改 digest_cloud.py 主规则, 并追加用例到 quality_regression.json 后跑回归。"
 }
